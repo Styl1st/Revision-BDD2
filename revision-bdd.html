@@ -2133,7 +2133,7 @@ ORDER BY salaire DESC;
 
       <div class="def warn" style="margin-bottom: 24px;">
         <div class="def-term">Note de sécurité</div>
-        La clé n'est <strong>pas persistée</strong> (rechargement de page = clé perdue). Récupère-la sur <a href="https://console.mistral.ai/" target="_blank" rel="noopener" style="color:var(--accent);">console.mistral.ai</a>.
+        La clé est stockée dans le <code>localStorage</code> de ton navigateur — elle reste après rechargement, mais elle est accessible à toute personne ayant un accès à ce navigateur. Évite de l'utiliser sur un poste partagé. Tu peux l'effacer à tout moment avec le bouton ci-dessous. Récupère-la sur <a href="https://console.mistral.ai/" target="_blank" rel="noopener" style="color:var(--accent);">console.mistral.ai</a>.
       </div>
 
       <div class="form-row">
@@ -2767,6 +2767,21 @@ function setupSettings() {
   const status = document.getElementById('apiStatus');
   const statusTxt = document.getElementById('apiStatusText');
 
+  const LS_KEY = 'bdd-revision.mistral.apiKey';
+  const LS_MODEL = 'bdd-revision.mistral.model';
+
+  // localStorage est disponible en http(s):// mais pas toujours en file://
+  // — on encapsule pour ne pas crasher.
+  function lsGet(k) {
+    try { return localStorage.getItem(k); } catch (e) { return null; }
+  }
+  function lsSet(k, v) {
+    try { localStorage.setItem(k, v); return true; } catch (e) { return false; }
+  }
+  function lsDel(k) {
+    try { localStorage.removeItem(k); } catch (e) {}
+  }
+
   function updateStatus() {
     if (state.apiKey) {
       status.classList.add('connected');
@@ -2777,13 +2792,36 @@ function setupSettings() {
     }
   }
 
+  // Recharger la clé enregistrée au démarrage
+  const savedKey = lsGet(LS_KEY);
+  const savedModel = lsGet(LS_MODEL);
+  if (savedKey) {
+    state.apiKey = savedKey;
+    apiInput.value = savedKey;
+  }
+  if (savedModel) {
+    state.model = savedModel;
+    modelSel.value = savedModel;
+  }
+  updateStatus();
+  if (savedKey) {
+    result.innerHTML = '<p style="color:var(--text-muted); font-size:13px;">✓ Clé chargée depuis le stockage local du navigateur.</p>';
+  }
+
   saveBtn.addEventListener('click', () => {
     state.apiKey = apiInput.value.trim() || null;
     state.model = modelSel.value;
     updateStatus();
-    result.innerHTML = state.apiKey
-      ? '<p style="color:var(--green);">✓ Clé enregistrée en mémoire pour cette session.</p>'
-      : '<p style="color:var(--text-muted);">Clé vide — déconnecté.</p>';
+    if (state.apiKey) {
+      const ok = lsSet(LS_KEY, state.apiKey);
+      lsSet(LS_MODEL, state.model);
+      result.innerHTML = ok
+        ? '<p style="color:var(--green);">✓ Clé enregistrée dans le navigateur. Elle sera rechargée automatiquement à chaque visite.</p>'
+        : '<p style="color:var(--accent);">⚠ Clé en mémoire pour cette session seulement — ton navigateur refuse le stockage local (probable mode file://, ouvre le site via Live Server pour activer la persistance).</p>';
+    } else {
+      lsDel(LS_KEY);
+      result.innerHTML = '<p style="color:var(--text-muted);">Clé vide — déconnecté.</p>';
+    }
   });
 
   testBtn.addEventListener('click', async () => {
@@ -2808,8 +2846,10 @@ function setupSettings() {
   clearBtn.addEventListener('click', () => {
     apiInput.value = '';
     state.apiKey = null;
+    lsDel(LS_KEY);
+    lsDel(LS_MODEL);
     updateStatus();
-    result.innerHTML = '<p style="color:var(--text-muted);">Clé effacée.</p>';
+    result.innerHTML = '<p style="color:var(--text-muted);">Clé effacée du navigateur.</p>';
   });
 }
 
