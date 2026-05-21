@@ -1,0 +1,2590 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Révisions BDD Avancées — Cahier de cours</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.min.js"></script>
+<style>
+  :root {
+    --bg: #0e0d0b;
+    --bg-2: #16140f;
+    --surface: #1c1a14;
+    --surface-2: #24211a;
+    --border: #2e2a22;
+    --border-soft: #221f19;
+    --text: #ede7d6;
+    --text-muted: #908970;
+    --text-faint: #5e584a;
+    --accent: #e0a85a;
+    --accent-hot: #f4b860;
+    --accent-soft: #b88950;
+    --blue: #6fa8c3;
+    --green: #8fb87d;
+    --red: #c97a6a;
+    --purple: #a48bb8;
+    --code-bg: #131210;
+    --code-border: #2a2620;
+    --shadow: 0 1px 0 rgba(255,255,255,0.03), 0 8px 30px rgba(0,0,0,0.4);
+    --serif: 'Fraunces', Georgia, serif;
+    --sans: 'Geist', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', 'Menlo', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(at 12% 8%, rgba(224, 168, 90, 0.07) 0px, transparent 50%),
+      radial-gradient(at 88% 100%, rgba(111, 168, 195, 0.04) 0px, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  /* Layout */
+  .app { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+  /* Sidebar */
+  aside.sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    background: var(--bg-2);
+    border-right: 1px solid var(--border-soft);
+    padding: 28px 20px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .brand-mark {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 28px;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+  }
+  .brand-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .brand-tagline {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-bottom: 32px;
+    line-height: 1.4;
+  }
+  .nav-section {
+    margin-bottom: 24px;
+  }
+  .nav-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-left: 4px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+    font-size: 14px;
+    border-left: 2px solid transparent;
+    margin-left: -2px;
+  }
+  .nav-item:hover {
+    color: var(--text);
+    background: var(--surface);
+  }
+  .nav-item.active {
+    color: var(--accent);
+    background: var(--surface);
+    border-left-color: var(--accent);
+  }
+  .nav-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    width: 22px;
+  }
+  .nav-item.active .nav-num { color: var(--accent); }
+  .api-status {
+    margin-top: 24px;
+    padding: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+  }
+  .api-status .dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--text-faint);
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .api-status.connected .dot { background: var(--green); box-shadow: 0 0 8px rgba(143,184,125,0.6); }
+  .api-status-label { color: var(--text-muted); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; }
+  /* Main */
+  main.content {
+    flex: 1;
+    padding: 56px 64px 120px;
+    max-width: 1100px;
+    min-width: 0;
+  }
+  @media (max-width: 900px) {
+    aside.sidebar { display: none; }
+    main.content { padding: 32px 24px 80px; }
+  }
+  /* Section */
+  .section { display: none; animation: fadeUp 0.4s ease; }
+  .section.active { display: block; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .chapter-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  h1.chapter-title {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: 52px;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+  h1.chapter-title em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 400;
+  }
+  .chapter-lead {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 19px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    max-width: 680px;
+    margin-bottom: 48px;
+  }
+  h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 30px;
+    letter-spacing: -0.015em;
+    margin: 48px 0 18px;
+    color: var(--text);
+    position: relative;
+    padding-bottom: 12px;
+  }
+  h2::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 32px;
+    height: 1px;
+    background: var(--accent);
+  }
+  h3 {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 17px;
+    margin: 28px 0 10px;
+    color: var(--text);
+    letter-spacing: -0.005em;
+  }
+  h3::before {
+    content: '§ ';
+    color: var(--accent-soft);
+    font-family: var(--serif);
+    font-style: italic;
+  }
+  p { margin-bottom: 14px; color: var(--text); }
+  p.muted { color: var(--text-muted); }
+  ul, ol { padding-left: 24px; margin-bottom: 14px; color: var(--text); }
+  ul li, ol li { margin-bottom: 6px; }
+  ul li::marker { color: var(--accent-soft); }
+  strong { color: var(--accent); font-weight: 600; }
+  em { color: var(--text-muted); }
+  code:not(pre code) {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--accent-hot);
+  }
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px 24px;
+    margin: 18px 0;
+    box-shadow: var(--shadow);
+  }
+  .card.alt {
+    background: linear-gradient(180deg, var(--surface) 0%, var(--bg-2) 100%);
+  }
+  .card-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    margin-bottom: 14px;
+  }
+  .card-head .marker {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+  /* Code blocks */
+  pre {
+    font-family: var(--mono);
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-left: 3px solid var(--accent);
+    padding: 16px 18px;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 12px 0;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text);
+    position: relative;
+  }
+  pre code { font-family: var(--mono); color: inherit; }
+  .sql-kw { color: #d99553; font-weight: 500; }
+  .sql-str { color: #8fb87d; }
+  .sql-num { color: #c97a6a; }
+  .sql-com { color: var(--text-faint); font-style: italic; }
+  .sql-fn { color: #6fa8c3; }
+  /* Definitions / callouts */
+  .def {
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    padding: 14px 18px;
+    margin: 16px 0;
+    border-radius: 0 6px 6px 0;
+  }
+  .def .def-term {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--accent);
+    font-size: 16px;
+    margin-bottom: 6px;
+  }
+  .warn { border-left-color: var(--red); }
+  .warn .def-term { color: var(--red); }
+  .info { border-left-color: var(--blue); }
+  .info .def-term { color: var(--blue); }
+  .ok { border-left-color: var(--green); }
+  .ok .def-term { color: var(--green); }
+  /* Tables */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-family: var(--mono);
+    font-size: 13px;
+    background: var(--code-bg);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .data-table th, .data-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .data-table th {
+    background: var(--surface-2);
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: rgba(224, 168, 90, 0.03); }
+  /* Buttons */
+  .btn {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover { background: var(--surface-2); border-color: var(--accent-soft); }
+  .btn.primary {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .btn.primary:hover { background: var(--accent-hot); }
+  .btn.ghost { background: transparent; }
+  .btn.small { padding: 5px 10px; font-size: 12px; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  /* IDE */
+  .ide {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 20px 0;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .ide-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-2);
+  }
+  .ide-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ide-title::before {
+    content: '';
+    width: 8px; height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(143,184,125,0.5);
+  }
+  .ide-actions { display: flex; gap: 6px; }
+  .ide-editor {
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    background: var(--code-bg);
+    color: var(--text);
+    width: 100%;
+    min-height: 180px;
+    padding: 14px 16px;
+    border: none;
+    resize: vertical;
+    outline: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .ide-editor:focus { background: #0e0d0b; }
+  .ide-output {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 14px 16px;
+    background: var(--code-bg);
+    color: var(--text-muted);
+    max-height: 360px;
+    overflow: auto;
+    border-top: 1px solid var(--border-soft);
+  }
+  .ide-output:empty::before {
+    content: 'En attente — clique sur Exécuter';
+    color: var(--text-faint);
+    font-style: italic;
+  }
+  .result-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 6px;
+    font-size: 12px;
+  }
+  .result-table th, .result-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border-soft);
+    text-align: left;
+  }
+  .result-table th {
+    background: var(--surface-2);
+    color: var(--accent);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .ide-msg-ok { color: var(--green); }
+  .ide-msg-err { color: var(--red); }
+  .ide-msg-info { color: var(--blue); }
+  /* Mistral panel */
+  .mistral-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin: 14px 0;
+    font-size: 13px;
+  }
+  .mistral-panel .mistral-head {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--purple);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .mistral-panel .mistral-head::before {
+    content: '✦';
+    color: var(--purple);
+  }
+  .mistral-content {
+    color: var(--text-muted);
+    line-height: 1.65;
+    white-space: pre-wrap;
+    font-size: 13.5px;
+  }
+  .mistral-content code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--accent-hot);
+  }
+  .mistral-content pre {
+    margin: 8px 0;
+    font-size: 12px;
+    background: var(--bg);
+  }
+  .mistral-content strong { color: var(--text); }
+  .loader {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  /* Form */
+  .form-row { margin: 14px 0; }
+  .form-row label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .form-row input, .form-row textarea, .form-row select {
+    width: 100%;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 10px 12px;
+    border-radius: 4px;
+    outline: none;
+  }
+  .form-row input:focus, .form-row textarea:focus { border-color: var(--accent); }
+  /* Quiz */
+  .quiz-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px 24px;
+    margin: 16px 0;
+  }
+  .quiz-q {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 17px;
+    color: var(--text);
+    margin-bottom: 14px;
+  }
+  .quiz-opt {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 10px 14px;
+    margin: 6px 0;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 13px;
+    transition: all 0.15s ease;
+  }
+  .quiz-opt:hover { border-color: var(--accent-soft); background: var(--surface-2); }
+  .quiz-opt.correct { background: rgba(143,184,125,0.12); border-color: var(--green); color: var(--green); }
+  .quiz-opt.wrong { background: rgba(201,122,106,0.1); border-color: var(--red); color: var(--red); }
+  .quiz-feedback {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 4px;
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--text-muted);
+    display: none;
+  }
+  .quiz-feedback.show { display: block; }
+  /* Grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .grid-2 { grid-template-columns: 1fr; } }
+  /* Home dashboard */
+  .home-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    margin-top: 32px;
+  }
+  @media (max-width: 760px) { .home-grid { grid-template-columns: 1fr; } }
+  .home-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .home-card:hover {
+    border-color: var(--accent-soft);
+    transform: translateY(-2px);
+  }
+  .home-card::before {
+    content: attr(data-num);
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    font-family: var(--serif);
+    font-size: 80px;
+    font-weight: 200;
+    color: var(--border);
+    line-height: 1;
+    pointer-events: none;
+  }
+  .home-card h4 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 22px;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+    position: relative;
+  }
+  .home-card p {
+    color: var(--text-muted);
+    font-size: 13.5px;
+    margin: 0;
+    position: relative;
+  }
+  .home-card .tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: block;
+  }
+  /* Reference table */
+  .ref-grid {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 8px 24px;
+    margin: 12px 0;
+    align-items: start;
+  }
+  .ref-grid > div:nth-child(odd) {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    padding-top: 2px;
+  }
+  .ref-grid > div:nth-child(even) {
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent-soft); }
+  /* Diagram */
+  .diagram {
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    padding: 20px;
+    border-radius: 6px;
+    margin: 14px 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .acid-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 18px 0;
+  }
+  @media (max-width: 760px) { .acid-grid { grid-template-columns: 1fr 1fr; } }
+  .acid-cell {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px;
+    border-radius: 6px;
+    text-align: center;
+  }
+  .acid-cell .letter {
+    font-family: var(--serif);
+    font-size: 38px;
+    color: var(--accent);
+    font-weight: 300;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .acid-cell .word {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .acid-cell .desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+  /* Mobile toggle */
+  .mobile-nav-btn {
+    display: none;
+    position: fixed;
+    top: 16px; right: 16px;
+    z-index: 100;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 8px 14px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+  }
+  @media (max-width: 900px) {
+    .mobile-nav-btn { display: block; }
+    aside.sidebar.open { display: block; position: fixed; left: 0; top: 0; z-index: 99; }
+  }
+  /* Subnav within chapter */
+  .subnav {
+    display: flex;
+    gap: 4px;
+    margin: 8px 0 32px;
+    border-bottom: 1px solid var(--border-soft);
+    overflow-x: auto;
+  }
+  .subnav-item {
+    padding: 8px 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-faint);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .subnav-item:hover { color: var(--text-muted); }
+  .subnav-item.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .subsection { display: none; }
+  .subsection.active { display: block; }
+  /* Misc */
+  .kbd {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 6px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-muted);
+  }
+</style>
+</head>
+<body>
+
+<button class="mobile-nav-btn" id="mobileNavBtn">☰ Menu</button>
+
+<div class="app">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-mark">BDD</span>
+      <span class="brand-sub">— Avancées</span>
+    </div>
+    <p class="brand-tagline">Cahier d'études<br/>pour réviser sereinement.</p>
+
+    <div class="nav-section">
+      <div class="nav-label">Cours</div>
+      <a class="nav-item" data-target="home"><span class="nav-num">00</span>Accueil</a>
+      <a class="nav-item" data-target="cm1"><span class="nav-num">01</span>Normalisation</a>
+      <a class="nav-item" data-target="cm2"><span class="nav-num">02</span>Vues, Index, Droits</a>
+      <a class="nav-item" data-target="cm3"><span class="nav-num">03</span>Transactions</a>
+      <a class="nav-item" data-target="cm4"><span class="nav-num">04</span>Procédures & Triggers</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Pratique</div>
+      <a class="nav-item" data-target="ide"><span class="nav-num">★</span>IDE SQL libre</a>
+      <a class="nav-item" data-target="quiz"><span class="nav-num">?</span>Quiz</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Outils</div>
+      <a class="nav-item" data-target="settings"><span class="nav-num">⚙</span>Paramètres</a>
+    </div>
+
+    <div class="api-status" id="apiStatus">
+      <div class="api-status-label">Mistral API</div>
+      <div style="margin-top:6px;"><span class="dot"></span><span id="apiStatusText">Non connecté</span></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <!-- ====================== HOME ====================== -->
+    <section class="section active" id="section-home">
+      <div class="chapter-tag">— Bases de Données Avancées</div>
+      <h1 class="chapter-title">Cahier de <em>révisions</em>.</h1>
+      <p class="chapter-lead">Quatre cours, un IDE SQL embarqué et un assistant Mistral optionnel. Tout ce qu'il faut pour réviser activement, sans naviguer entre dix onglets.</p>
+
+      <div class="card alt">
+        <div class="card-head"><span class="marker"></span>Comment utiliser ce site</div>
+        <ol>
+          <li>Parcours chaque chapitre dans l'ordre — chacun a une sous-navigation interne.</li>
+          <li>À chaque section <em>"Pratique"</em>, un IDE SQL réel t'attend avec une base pré-remplie : tape, exécute, observe.</li>
+          <li>Ajoute ta clé API Mistral dans <strong>Paramètres</strong> pour débloquer la correction automatique et la génération d'exercices.</li>
+          <li>Pour aller plus loin, ouvre l'<strong>IDE SQL libre</strong> et joue avec les tables comme tu veux.</li>
+        </ol>
+      </div>
+
+      <div class="home-grid">
+        <div class="home-card" data-num="01" data-go="cm1">
+          <span class="tag">CM1</span>
+          <h4>Normalisation</h4>
+          <p>Dépendances fonctionnelles, formes normales (1FN, 2FN, 3FN, BCNF), algorithmes de décomposition.</p>
+        </div>
+        <div class="home-card" data-num="02" data-go="cm2">
+          <span class="tag">CM2</span>
+          <h4>Vues, Index, Droits</h4>
+          <p>Tables virtuelles, vues matérialisées, indexes B-tree, GRANT / REVOKE.</p>
+        </div>
+        <div class="home-card" data-num="03" data-go="cm3">
+          <span class="tag">CM3</span>
+          <h4>Transactions</h4>
+          <p>ACID, anomalies d'entrelacement, sérialisabilité, verrouillage à deux phases.</p>
+        </div>
+        <div class="home-card" data-num="04" data-go="cm4">
+          <span class="tag">CM4</span>
+          <h4>Procédures & Triggers</h4>
+          <p>Procédures stockées, fonctions, variables, déclencheurs BEFORE / AFTER.</p>
+        </div>
+      </div>
+
+      <h2>Base de données d'entraînement</h2>
+      <p class="muted">Chaque IDE est chargé avec la même petite base réaliste pour que tu puisses pratiquer immédiatement :</p>
+      <div class="ref-grid">
+        <div>employes</div><div>id, nom, prenom, salaire, dept_id, date_embauche</div>
+        <div>departements</div><div>id, nom, budget</div>
+        <div>produits</div><div>id, libelle, prix, stock, categorie</div>
+        <div>clients</div><div>id, nom, email, ville</div>
+        <div>commandes</div><div>id, client_id, produit_id, quantite, date_cmd</div>
+      </div>
+    </section>
+
+    <!-- ====================== CM1 : NORMALISATION ====================== -->
+    <section class="section" id="section-cm1">
+      <div class="chapter-tag">CM1 — Bases de Données Avancées</div>
+      <h1 class="chapter-title">Normalisation <em>relationnelle</em>.</h1>
+      <p class="chapter-lead">Construire des tables sans redondance, vérifier la bonne conception issue de la modélisation conceptuelle, et restructurer ce qui existe déjà.</p>
+
+      <div class="subnav">
+        <div class="subnav-item active" data-sub="cm1-1">Pourquoi normaliser</div>
+        <div class="subnav-item" data-sub="cm1-2">Dépendances fonctionnelles</div>
+        <div class="subnav-item" data-sub="cm1-3">Clés candidates</div>
+        <div class="subnav-item" data-sub="cm1-4">Formes normales</div>
+        <div class="subnav-item" data-sub="cm1-5">Algorithme & décomposition</div>
+        <div class="subnav-item" data-sub="cm1-6">Pratique</div>
+      </div>
+
+      <!-- CM1.1 Pourquoi -->
+      <div class="subsection active" id="sub-cm1-1">
+        <h2>L'objectif : éliminer la redondance</h2>
+        <p>Une base mal conçue va répéter des informations dans plusieurs lignes ou plusieurs tables. C'est le terreau idéal pour les <strong>anomalies</strong> :</p>
+        <div class="def warn">
+          <div class="def-term">Anomalies de mise à jour</div>
+          On change l'adresse d'un client à un endroit, mais pas aux autres — la base devient incohérente.
+        </div>
+        <div class="def warn">
+          <div class="def-term">Anomalies d'insertion</div>
+          On ne peut pas ajouter un département tant qu'on n'a pas un employé à y mettre, car la table mélange les deux concepts.
+        </div>
+        <div class="def warn">
+          <div class="def-term">Anomalies de suppression</div>
+          On supprime le dernier employé d'un département et… on perd aussi l'information du département.
+        </div>
+        <p>La normalisation est le processus qui découpe progressivement les tables pour faire disparaître ces problèmes, en s'appuyant sur les <strong>dépendances fonctionnelles</strong>.</p>
+      </div>
+
+      <!-- CM1.2 DF -->
+      <div class="subsection" id="sub-cm1-2">
+        <h2>Dépendance fonctionnelle (DF)</h2>
+        <div class="def">
+          <div class="def-term">Définition</div>
+          Soit <code>R(A₁, …, Aₙ)</code> et <code>X, Y ⊆ {A₁, …, Aₙ}</code>. On dit que <code>X → Y</code> (<em>X détermine Y</em>) si, pour toute instance de <code>R</code> et pour tous tuples <code>t₁, t₂</code> : <code>t₁[X] = t₂[X] ⟹ t₁[Y] = t₂[Y]</code>.
+        </div>
+        <p>Autrement dit : si deux lignes ont la même valeur pour <code>X</code>, alors elles ont forcément la même valeur pour <code>Y</code>.</p>
+
+        <h3>Exemple — table Voitures</h3>
+        <pre><span class="sql-com">-- Soit la table : Voiture(NumProprio, Nom, Ville, NumVéhicule, Marque, Date)</span>
+
+NumProprio → Nom
+NumProprio → Ville
+NumVéhicule → Marque
+NumProprio, NumVéhicule → Date</pre>
+        <p class="muted">Une DF est une <strong>contrainte sémantique</strong> : elle ne se déduit pas en regardant les données, elle se déclare à partir des règles métier.</p>
+
+        <h3>DF élémentaire</h3>
+        <p><code>X → A</code> est élémentaire ssi :</p>
+        <ul>
+          <li><code>A</code> est un attribut unique</li>
+          <li><code>A ∉ X</code></li>
+          <li>Il n'existe pas de <code>X' ⊂ X</code> tel que <code>X' → A</code> (X est minimal)</li>
+        </ul>
+        <p>On peut se limiter aux DFs élémentaires pour raisonner — c'est la <em>couverture minimale</em>.</p>
+
+        <div class="def info">
+          <div class="def-term">DF triviale</div>
+          <code>X → Y</code> est triviale si <code>Y ⊆ X</code>. Exemple : <code>A, B → B</code>. On les ignore en pratique.
+        </div>
+
+        <h3>Exemple plus complet</h3>
+        <p>Table <code>Cours(NomProf, Ville, Département, NomEtudiant, Age, NomCours, Note)</code> :</p>
+        <table class="data-table">
+          <tr><th>DF valides</th><th>DF invalides</th></tr>
+          <tr><td>NomProf → Ville</td><td>Age → NomEtudiant</td></tr>
+          <tr><td>NomEtudiant → Age</td><td>NomProf, NomEtudiant → Ville</td></tr>
+          <tr><td>NomCours → NomProf</td><td></td></tr>
+          <tr><td>NomEtudiant, NomCours → Note</td><td></td></tr>
+        </table>
+      </div>
+
+      <!-- CM1.3 Clés -->
+      <div class="subsection" id="sub-cm1-3">
+        <h2>Clé candidate</h2>
+        <div class="def">
+          <div class="def-term">Définition</div>
+          <code>X ⊆ R</code> est une <strong>clé candidate</strong> de <code>R</code> ssi :
+          <ul style="margin-top:8px;">
+            <li><code>X → A₁, A₂, …, Aₙ</code> (X détermine tous les attributs)</li>
+            <li><code>∀ Y ⊂ X, Y ↛ A₁, …, Aₙ</code> (X est minimal)</li>
+          </ul>
+        </div>
+        <p>Une relation peut avoir <strong>plusieurs</strong> clés candidates. On en choisit une comme <em>clé primaire</em>, les autres deviennent des <em>clés alternatives</em>.</p>
+
+        <h3>Méthode pratique</h3>
+        <ol>
+          <li>Identifie tous les attributs déterminés <em>uniquement</em> par d'autres attributs (les déterminés purs) — ils ne font partie d'aucune clé.</li>
+          <li>Identifie les attributs qui n'apparaissent jamais à droite d'une DF — ils sont obligatoirement dans toute clé.</li>
+          <li>Cherche la combinaison minimale qui détermine tout le reste.</li>
+        </ol>
+      </div>
+
+      <!-- CM1.4 Formes Normales -->
+      <div class="subsection" id="sub-cm1-4">
+        <h2>Les formes normales</h2>
+        <p class="muted">Une cascade : chaque forme normale suppose la précédente.</p>
+
+        <h3>1ère Forme Normale (1FN)</h3>
+        <div class="def">
+          <div class="def-term">Règle</div>
+          Tous les attributs sont <strong>atomiques</strong> — non composés, mono-valués.
+        </div>
+        <pre><span class="sql-com">-- Pas en 1FN :</span>
+PERSONNE (Nom, <span class="sql-num">Prénoms</span>)         <span class="sql-com">-- "Prénoms" peut contenir plusieurs valeurs</span>
+PERSONNE (Nom, Prénom, <span class="sql-num">Adresse</span>) <span class="sql-com">-- "Adresse" est composée</span>
+
+<span class="sql-com">-- Mise en 1FN :</span>
+PERSONNE1 (Nom, Prénom1, Prénom2)
+PERSONNE2 (Nom, Prénom, NumRue, Rue, CodePostal, Ville)</pre>
+
+        <h3>2ème Forme Normale (2FN)</h3>
+        <div class="def">
+          <div class="def-term">Règle</div>
+          Elle est en 1FN <strong>et</strong> tout attribut hors clé dépend de la <strong>totalité</strong> de la clé (pas d'une partie seulement).
+        </div>
+        <pre><span class="sql-com">-- Non 2FN : R(A, B, C, D) avec clé (A, B) et A → C</span>
+<span class="sql-com">-- C ne dépend que de A (une partie de la clé)</span>
+
+<span class="sql-com">-- Décomposition :</span>
+R1(A, B, D)
+R2(A, C)</pre>
+        <p class="muted">La 2FN ne se pose que si la clé est <strong>composée</strong>. Si la clé est un seul attribut, on est automatiquement en 2FN.</p>
+
+        <h3>3ème Forme Normale (3FN)</h3>
+        <div class="def">
+          <div class="def-term">Règle</div>
+          Elle est en 2FN <strong>et</strong> aucun attribut non-clé ne dépend d'un autre attribut non-clé (pas de dépendance transitive).
+        </div>
+        <pre><span class="sql-com">-- Non 3FN : R(A, C, D) avec clé A, et C → D</span>
+<span class="sql-com">-- D dépend de A via C (transitivement)</span>
+
+<span class="sql-com">-- Décomposition :</span>
+R1(A, C)
+R2(C, D)</pre>
+
+        <h3>Forme Normale Boyce-Codd (BCNF)</h3>
+        <div class="def">
+          <div class="def-term">Règle</div>
+          Pour toute DF non triviale <code>X → A</code>, <code>X</code> contient une clé candidate.
+        </div>
+        <p>BCNF est plus stricte que 3FN. Elles diffèrent quand un attribut <strong>fait partie</strong> d'une clé candidate mais dépend d'un attribut non-clé.</p>
+
+        <div class="card alt">
+          <div class="card-head"><span class="marker"></span>Récapitulatif</div>
+          <div class="ref-grid">
+            <div>1FN</div><div>Attributs atomiques.</div>
+            <div>2FN</div><div>1FN + pas de DF d'une <em>partie</em> de la clé vers un non-clé.</div>
+            <div>3FN</div><div>2FN + pas de DF entre non-clés.</div>
+            <div>BCNF</div><div>Toute DF non triviale part d'une <strong>super-clé</strong>.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CM1.5 Algorithme -->
+      <div class="subsection" id="sub-cm1-5">
+        <h2>Algorithme de décomposition vers la 3FN</h2>
+        <ol>
+          <li>Calculer la <strong>couverture minimale</strong> des DFs.</li>
+          <li>Pour chaque DF <code>X → A₁, …, Aₖ</code>, créer une relation <code>(X, A₁, …, Aₖ)</code>.</li>
+          <li>S'il n'existe aucune relation contenant une clé de la relation universelle, en ajouter une avec une clé candidate.</li>
+          <li>Supprimer toute relation entièrement incluse dans une autre.</li>
+        </ol>
+
+        <div class="def ok">
+          <div class="def-term">Propriété fondamentale</div>
+          Toute relation admet au moins une décomposition en 3FN qui :
+          <ul style="margin-top:6px;">
+            <li>préserve une couverture minimale de DFs</li>
+            <li>est <strong>sans perte</strong> (on peut reconstruire l'originale par jointure)</li>
+          </ul>
+        </div>
+
+        <h3>Exemple complet</h3>
+        <pre>R(NumEmployé, NomEmployé, NumService, NomService, NumChef)
+
+DFs :
+  NumEmployé → NomEmployé, NumService
+  NumService → NomService, NumChef
+
+<span class="sql-com">-- Décomposition en 3FN :</span>
+Employé(<u>NumEmployé</u>, NomEmployé, #NumService)
+Service(<u>NumService</u>, NomService, NumChef)</pre>
+      </div>
+
+      <!-- CM1.6 Pratique -->
+      <div class="subsection" id="sub-cm1-6">
+        <h2>Pratique : identifier les anomalies</h2>
+        <p>L'IDE ci-dessous charge une <strong>table volontairement mal conçue</strong> (non normalisée). Explore-la, repère les redondances, puis essaie de la décomposer en plusieurs tables propres.</p>
+
+        <div class="card">
+          <div class="card-head"><span class="marker"></span>Exercice 1 — Repérage</div>
+          <p>Une table <code>ventes_brutes(num_vente, client_nom, client_ville, produit_lib, produit_prix, quantite)</code> est chargée. Affiche son contenu, puis :</p>
+          <ol>
+            <li>Repère les redondances (mêmes infos client répétées).</li>
+            <li>Propose mentalement une décomposition en 3FN.</li>
+            <li>Crée les tables <code>clients</code>, <code>produits_v</code>, <code>ventes</code> avec les bonnes clés étrangères.</li>
+          </ol>
+        </div>
+
+        <div class="ide" data-ide="cm1">
+          <div class="ide-header">
+            <div class="ide-title">SQL — Exercice Normalisation</div>
+            <div class="ide-actions">
+              <button class="btn small ghost" data-action="reset">↺ Reset</button>
+              <button class="btn small ghost" data-action="ask-mistral">✦ Mistral</button>
+              <button class="btn small primary" data-action="run">▶ Exécuter</button>
+            </div>
+          </div>
+          <textarea class="ide-editor" spellcheck="false">-- Regarde d'abord la table brute
+SELECT * FROM ventes_brutes;
+
+-- Puis tente une décomposition. Exemple :
+-- CREATE TABLE clients_norm (id INTEGER PRIMARY KEY, nom TEXT, ville TEXT);
+-- INSERT INTO clients_norm SELECT DISTINCT ... FROM ventes_brutes;
+</textarea>
+          <div class="ide-output"></div>
+        </div>
+
+        <div class="mistral-panel" data-mistral="cm1" style="display:none;">
+          <div class="mistral-head">Assistant Mistral</div>
+          <div class="mistral-content"></div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn ghost" data-action="generate-exo" data-context="normalisation">✦ Générer un nouvel exercice</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== CM2 : VUES, INDEX, DROITS ====================== -->
+    <section class="section" id="section-cm2">
+      <div class="chapter-tag">CM2 — Bases de Données Avancées</div>
+      <h1 class="chapter-title">Vues, indexes &amp; <em>droits d'accès</em>.</h1>
+      <p class="chapter-lead">Trois mécanismes pour rendre une base à la fois pratique à utiliser, rapide à interroger, et sûre à exposer.</p>
+
+      <div class="subnav">
+        <div class="subnav-item active" data-sub="cm2-1">Vues</div>
+        <div class="subnav-item" data-sub="cm2-2">Vues matérialisées</div>
+        <div class="subnav-item" data-sub="cm2-3">Indexes</div>
+        <div class="subnav-item" data-sub="cm2-4">Droits</div>
+        <div class="subnav-item" data-sub="cm2-5">Pratique</div>
+      </div>
+
+      <!-- 2.1 Vues -->
+      <div class="subsection active" id="sub-cm2-1">
+        <h2>Vues virtuelles</h2>
+        <div class="def">
+          <div class="def-term">Définition</div>
+          Une vue est une <strong>table virtuelle</strong> dont les instances n'existent pas physiquement. C'est une table logique qui pointe sur une (ou plusieurs) tables physiques. Chaque appel à une vue exécute en réalité un <code>SELECT</code>.
+        </div>
+
+        <h3>Pourquoi des vues ?</h3>
+        <div class="ref-grid">
+          <div>Optimisation</div><div>Donner un nom à une requête longue qu'on utilise souvent.</div>
+          <div>Simplification</div><div>Réduire des tables complexes à des vues plus simples pour les utilisateurs métier.</div>
+          <div>Sécurité</div><div>Masquer certaines colonnes ou lignes aux utilisateurs.</div>
+        </div>
+
+        <h3>Syntaxe — CREATE VIEW</h3>
+        <pre><span class="sql-kw">CREATE</span> [<span class="sql-kw">OR REPLACE</span>] [<span class="sql-kw">TEMP</span>] <span class="sql-kw">VIEW</span> &lt;nom_vue&gt;
+  [(nom_colonne [,…])] <span class="sql-kw">AS</span> requête
+  [<span class="sql-kw">WITH</span> [<span class="sql-kw">CASCADED</span> | <span class="sql-kw">LOCAL</span>] <span class="sql-kw">CHECK OPTION</span>]</pre>
+        <div class="ref-grid">
+          <div>TEMP</div><div>La vue est supprimée à la fin de la session.</div>
+          <div>CHECK OPTION</div><div>Les INSERT / UPDATE via la vue doivent respecter sa condition.</div>
+          <div>LOCAL</div><div>Vérification uniquement sur cette vue.</div>
+          <div>CASCADED</div><div>Vérification sur la vue et toutes ses vues-filles.</div>
+        </div>
+
+        <h3>Exemple — vue avec jointure</h3>
+        <pre><span class="sql-kw">CREATE VIEW</span> tous <span class="sql-kw">AS</span>
+<span class="sql-kw">SELECT</span> e.nom <span class="sql-kw">AS</span> Employe, d.nom <span class="sql-kw">AS</span> departement
+<span class="sql-kw">FROM</span> Employes e, Departement d
+<span class="sql-kw">WHERE</span> e.departement = d.id;
+
+<span class="sql-com">-- Utilisation : exactement comme une table</span>
+<span class="sql-kw">SELECT</span> * <span class="sql-kw">FROM</span> tous;</pre>
+
+        <h3>Exemple — vue dérivée d'une autre vue</h3>
+        <pre><span class="sql-kw">CREATE VIEW</span> les_dupont <span class="sql-kw">AS</span>
+<span class="sql-kw">SELECT</span> * <span class="sql-kw">FROM</span> tous
+<span class="sql-kw">WHERE</span> Employe = <span class="sql-str">'Dupont'</span>;</pre>
+
+        <h3>Suppression et renommage</h3>
+        <pre><span class="sql-kw">DROP VIEW</span> &lt;nom_vue&gt; [<span class="sql-kw">CASCADE</span> | <span class="sql-kw">RESTRICT</span>];
+<span class="sql-com">-- CASCADE : supprime aussi les objets qui en dépendent</span>
+<span class="sql-com">-- RESTRICT : refuse si une dépendance existe (défaut)</span>
+
+<span class="sql-kw">RENAME</span> &lt;ancien&gt; <span class="sql-kw">TO</span> &lt;nouveau&gt;;</pre>
+      </div>
+
+      <!-- 2.2 Vues matérialisées -->
+      <div class="subsection" id="sub-cm2-2">
+        <h2>Vues matérialisées</h2>
+        <p>Contrairement à une vue virtuelle, une vue matérialisée est <strong>stockée physiquement</strong> sur disque. On la crée avec <code>CREATE MATERIALIZED VIEW</code>.</p>
+
+        <div class="grid-2">
+          <div class="def ok">
+            <div class="def-term">Avantages</div>
+            <ul>
+              <li>Temps de réponse améliorés (les requêtes en lecture sont instantanées)</li>
+              <li>Consommation réduite : le SGBD n'a pas à réexécuter la requête</li>
+              <li>Idéal pour les rapports d'analyse périodiques</li>
+            </ul>
+          </div>
+          <div class="def warn">
+            <div class="def-term">Inconvénients</div>
+            <ul>
+              <li>Espace de stockage supplémentaire</li>
+              <li>Données potentiellement obsolètes</li>
+              <li>Nécessite un rafraîchissement périodique (<code>REFRESH MATERIALIZED VIEW</code>)</li>
+            </ul>
+          </div>
+        </div>
+        <p class="muted">À choisir quand la lecture est <strong>fréquente</strong> et la fraîcheur n'est <strong>pas critique</strong>.</p>
+      </div>
+
+      <!-- 2.3 Indexes -->
+      <div class="subsection" id="sub-cm2-3">
+        <h2>Indexes</h2>
+        <p>Sans index, le SGBD fait un <em>full table scan</em> : il parcourt toutes les lignes pour trouver celles qui correspondent à la clause <code>WHERE</code>. Avec un index, il navigue dans un arbre et atteint la donnée en <code>O(log n)</code>.</p>
+
+        <h3>Le B-Tree (Balanced Tree)</h3>
+        <p>Les indexes sont stockés sous forme d'arbre équilibré. Chaque nœud contient des valeurs triées qui pointent vers les pages de données, ou vers d'autres nœuds plus profonds.</p>
+        <div class="diagram">
+<pre style="background:none; border:none; padding:0; text-align:left; display:inline-block; color:var(--text-muted);">       [ 1 | 11 ]
+        /        \
+   [1|5|9]       [11|17]
+   /  |  \        |   \
+ 1-4 5-8 9-10  11-15  17-21</pre>
+        </div>
+
+        <h3>Syntaxe MySQL</h3>
+        <pre><span class="sql-kw">CREATE INDEX</span> &lt;nom_index&gt; <span class="sql-kw">ON</span> &lt;nom_table&gt; (col1, col2, ...);
+
+<span class="sql-com">-- Exemple</span>
+<span class="sql-kw">CREATE INDEX</span> idx_person_genre <span class="sql-kw">ON</span> person (genre);
+
+<span class="sql-com">-- Suppression</span>
+<span class="sql-kw">DROP INDEX</span> idx_person_genre <span class="sql-kw">ON</span> person;</pre>
+
+        <div class="def info">
+          <div class="def-term">Quand indexer ?</div>
+          Sur les colonnes utilisées dans <code>WHERE</code>, <code>JOIN ... ON</code>, et <code>ORDER BY</code> — surtout si la table est grosse et que la cardinalité de la colonne est élevée.
+        </div>
+
+        <div class="def warn">
+          <div class="def-term">Le coût des indexes</div>
+          <ul>
+            <li>Espace disque supplémentaire</li>
+            <li>Ralentit les <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code> (il faut mettre à jour l'arbre)</li>
+            <li>Inutile sur une colonne à faible cardinalité (genre M/F/Other sur une table tiny)</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 2.4 Droits -->
+      <div class="subsection" id="sub-cm2-4">
+        <h2>Droits d'accès</h2>
+        <p>Une base sérieuse ne donne pas tous les pouvoirs à tous les utilisateurs. Le DBA (<em>Database Administrator</em>) accorde et révoque des droits avec <code>GRANT</code> et <code>REVOKE</code>.</p>
+
+        <h3>Le super-utilisateur</h3>
+        <p>Niveau DBA. C'est en général celui qui a créé la base. Il a deux droits exclusifs : <strong>créer des utilisateurs</strong> et <strong>créer des bases de données</strong>.</p>
+
+        <h3>Droits par type d'objet</h3>
+        <table class="data-table">
+          <tr><th>Droit</th><th>Tables</th><th>Vues</th><th>Fonctions</th></tr>
+          <tr><td>SELECT</td><td>✓</td><td>✓</td><td></td></tr>
+          <tr><td>INSERT</td><td>✓</td><td>✓</td><td></td></tr>
+          <tr><td>UPDATE</td><td>✓</td><td>✓</td><td></td></tr>
+          <tr><td>DELETE</td><td>✓</td><td>✓</td><td></td></tr>
+          <tr><td>ALTER</td><td>✓</td><td></td><td></td></tr>
+          <tr><td>REFERENCES</td><td>✓</td><td></td><td></td></tr>
+          <tr><td>EXECUTE</td><td></td><td></td><td>✓</td></tr>
+        </table>
+
+        <h3>GRANT — accorder un droit</h3>
+        <pre><span class="sql-kw">GRANT</span> {<span class="sql-kw">SELECT</span> | <span class="sql-kw">INSERT</span> | <span class="sql-kw">UPDATE</span> | <span class="sql-kw">DELETE</span> | <span class="sql-kw">ALL PRIVILEGES</span>}
+  <span class="sql-kw">ON</span> [<span class="sql-kw">TABLE</span>] ma_table [,…]
+  <span class="sql-kw">TO</span> {user | <span class="sql-kw">GROUP</span> name | <span class="sql-kw">PUBLIC</span>} [,…]
+  [<span class="sql-kw">WITH GRANT OPTION</span>];</pre>
+
+        <pre><span class="sql-com">-- Tout le monde peut lire Client</span>
+<span class="sql-kw">GRANT SELECT</span> <span class="sql-kw">ON</span> Client <span class="sql-kw">TO PUBLIC</span>;
+
+<span class="sql-com">-- Alice peut insérer dans Client</span>
+<span class="sql-kw">GRANT INSERT</span> <span class="sql-kw">ON TABLE</span> Client <span class="sql-kw">TO</span> Alice;
+
+<span class="sql-com">-- Bob peut modifier/supprimer ET peut transmettre ces droits</span>
+<span class="sql-kw">GRANT UPDATE</span>, <span class="sql-kw">DELETE</span> <span class="sql-kw">ON TABLE</span> Client
+  <span class="sql-kw">TO</span> Bob <span class="sql-kw">WITH GRANT OPTION</span>;
+
+<span class="sql-com">-- Droits fins sur certaines colonnes seulement</span>
+<span class="sql-kw">GRANT INSERT</span>, <span class="sql-kw">UPDATE</span> (nom, adresse) <span class="sql-kw">ON</span> Client <span class="sql-kw">TO</span> Alice;</pre>
+
+        <div class="def info">
+          <div class="def-term">Astuce — pas de SELECT par colonne</div>
+          On ne peut pas restreindre le <code>SELECT</code> à certaines colonnes. La solution : créer une <strong>vue</strong> qui n'expose que ces colonnes, puis <code>GRANT SELECT</code> sur la vue.
+        </div>
+
+        <h3>REVOKE — supprimer un droit</h3>
+        <pre><span class="sql-kw">REVOKE</span> [<span class="sql-kw">GRANT OPTION FOR</span>] {<span class="sql-kw">SELECT</span> | <span class="sql-kw">INSERT</span> | …}
+  <span class="sql-kw">ON</span> [<span class="sql-kw">TABLE</span>] ma_table [,…]
+  <span class="sql-kw">FROM</span> {user | <span class="sql-kw">GROUP</span> name | <span class="sql-kw">PUBLIC</span>} [,…]
+  [<span class="sql-kw">CASCADE</span> | <span class="sql-kw">RESTRICT</span>];</pre>
+
+        <pre><span class="sql-com">-- Retire au groupe PUBLIC le droit d'insertion</span>
+<span class="sql-kw">REVOKE INSERT</span> <span class="sql-kw">ON</span> films <span class="sql-kw">FROM PUBLIC</span>;
+
+<span class="sql-com">-- Retire TOUS les droits de Bob sur la vue Genres</span>
+<span class="sql-kw">REVOKE ALL PRIVILEGES</span> <span class="sql-kw">ON</span> genres <span class="sql-kw">FROM</span> Bob;</pre>
+
+        <div class="def warn">
+          <div class="def-term">Limite du REVOKE</div>
+          Le pouvoir de révocation est limité aux droits qu'on a soi-même accordés. Paul, qui avait donné un <code>INSERT</code> à Alice, ne peut révoquer <strong>que</strong> ce droit, pas un autre.
+        </div>
+
+        <h3>Rôles</h3>
+        <p>Un rôle est un ensemble de droits qu'on attribue à plusieurs utilisateurs. Plus maintenable que de gérer chaque droit individuellement.</p>
+        <pre><span class="sql-kw">CREATE ROLE</span> vendeur;
+<span class="sql-kw">GRANT SELECT</span>, <span class="sql-kw">INSERT</span> <span class="sql-kw">ON</span> commandes <span class="sql-kw">TO</span> vendeur;
+<span class="sql-kw">GRANT</span> vendeur <span class="sql-kw">TO</span> Alice, Bob;
+
+<span class="sql-com">-- Retire le rôle à Alice</span>
+<span class="sql-kw">REVOKE</span> vendeur <span class="sql-kw">FROM</span> Alice;</pre>
+      </div>
+
+      <!-- 2.5 Pratique -->
+      <div class="subsection" id="sub-cm2-5">
+        <h2>Pratique — Vues</h2>
+        <p>Crée une vue qui combine les employés avec le nom de leur département, puis interroge-la comme une table normale.</p>
+
+        <div class="ide" data-ide="cm2-vue">
+          <div class="ide-header">
+            <div class="ide-title">SQL — Vues</div>
+            <div class="ide-actions">
+              <button class="btn small ghost" data-action="reset">↺ Reset</button>
+              <button class="btn small ghost" data-action="ask-mistral">✦ Mistral</button>
+              <button class="btn small primary" data-action="run">▶ Exécuter</button>
+            </div>
+          </div>
+          <textarea class="ide-editor" spellcheck="false">-- Crée une vue qui montre nom de l'employé, son salaire et son département
+CREATE VIEW v_employes_complet AS
+SELECT e.nom, e.prenom, e.salaire, d.nom AS departement
+FROM employes e
+JOIN departements d ON e.dept_id = d.id;
+
+-- Utilise-la
+SELECT * FROM v_employes_complet
+WHERE salaire > 3000;
+
+-- Exo : crée une vue "v_masse_salariale" qui retourne, par département,
+-- le total des salaires. Indice : GROUP BY + SUM().
+</textarea>
+          <div class="ide-output"></div>
+        </div>
+
+        <div class="mistral-panel" data-mistral="cm2-vue" style="display:none;">
+          <div class="mistral-head">Assistant Mistral</div>
+          <div class="mistral-content"></div>
+        </div>
+
+        <h2>Pratique — Index</h2>
+        <p>Crée un index sur une colonne fréquemment filtrée. SQLite (l'IDE utilise SQLite) supporte <code>EXPLAIN QUERY PLAN</code> pour voir l'effet.</p>
+
+        <div class="ide" data-ide="cm2-idx">
+          <div class="ide-header">
+            <div class="ide-title">SQL — Indexes</div>
+            <div class="ide-actions">
+              <button class="btn small ghost" data-action="reset">↺ Reset</button>
+              <button class="btn small ghost" data-action="ask-mistral">✦ Mistral</button>
+              <button class="btn small primary" data-action="run">▶ Exécuter</button>
+            </div>
+          </div>
+          <textarea class="ide-editor" spellcheck="false">-- Plan d'exécution AVANT index
+EXPLAIN QUERY PLAN
+SELECT * FROM employes WHERE salaire > 3500;
+
+-- Crée l'index
+CREATE INDEX idx_emp_salaire ON employes(salaire);
+
+-- Plan d'exécution APRÈS — il doit mentionner USING INDEX
+EXPLAIN QUERY PLAN
+SELECT * FROM employes WHERE salaire > 3500;
+
+-- Exo : crée un index composite sur (dept_id, salaire) pour accélérer
+-- les requêtes "employés du département X gagnant plus que Y".
+</textarea>
+          <div class="ide-output"></div>
+        </div>
+
+        <div class="mistral-panel" data-mistral="cm2-idx" style="display:none;">
+          <div class="mistral-head">Assistant Mistral</div>
+          <div class="mistral-content"></div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn ghost" data-action="generate-exo" data-context="vues-indexes">✦ Générer un nouvel exercice</button>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ====================== CM3 - TRANSACTIONS ====================== -->
+    <section class="section" id="section-cm3">
+      <div class="chapter-tag">CM3 — Bases de Données Avancées</div>
+      <h1 class="chapter-title">Transactions &amp; <em>concurrence</em>.</h1>
+      <p class="chapter-lead">Comment plusieurs utilisateurs peuvent travailler sur la même base sans se marcher dessus — et comment garantir qu'aucune donnée n'est perdue, même en cas de panne.</p>
+
+      <div class="subnav">
+        <div class="subnav-item active" data-sub="cm3-1">Définition</div>
+        <div class="subnav-item" data-sub="cm3-2">ACID</div>
+        <div class="subnav-item" data-sub="cm3-3">Anomalies</div>
+        <div class="subnav-item" data-sub="cm3-4">Sérialisabilité</div>
+        <div class="subnav-item" data-sub="cm3-5">Verrous</div>
+        <div class="subnav-item" data-sub="cm3-6">Pratique</div>
+      </div>
+
+      <!-- 3.1 Définition -->
+      <div class="subsection active" id="sub-cm3-1">
+        <h2>Qu'est-ce qu'une transaction&nbsp;?</h2>
+        <div class="def">
+          <div class="def-term">Définition</div>
+          Une transaction est une <strong>unité logique de travail</strong> regroupant plusieurs opérations qui doivent toutes réussir, ou toutes échouer. Soit on valide l'ensemble (<code>COMMIT</code>), soit on annule tout (<code>ROLLBACK</code>).
+        </div>
+
+        <h3>Exemple classique : transfert bancaire</h3>
+        <pre><span class="sql-kw">START TRANSACTION</span>;
+<span class="sql-kw">UPDATE</span> comptes <span class="sql-kw">SET</span> solde = solde - 100 <span class="sql-kw">WHERE</span> id = 1;
+<span class="sql-kw">UPDATE</span> comptes <span class="sql-kw">SET</span> solde = solde + 100 <span class="sql-kw">WHERE</span> id = 2;
+<span class="sql-kw">COMMIT</span>;
+<span class="sql-com">-- ou ROLLBACK si quelque chose tourne mal</span></pre>
+        <p>Si la 2ᵉ instruction échoue, on ne veut <strong>surtout pas</strong> que la 1ʳᵉ soit validée : on perdrait 100€.</p>
+
+        <h3>Autocommit</h3>
+        <div class="ref-grid">
+          <div>autocommit = ON (défaut)</div><div>Chaque instruction est sa propre transaction, validée immédiatement.</div>
+          <div>autocommit = OFF</div><div>Les instructions s'accumulent jusqu'à un <code>COMMIT</code> ou <code>ROLLBACK</code> explicite.</div>
+          <div>START TRANSACTION</div><div>Démarre explicitement une transaction même en mode autocommit ON.</div>
+        </div>
+      </div>
+
+      <!-- 3.2 ACID -->
+      <div class="subsection" id="sub-cm3-2">
+        <h2>Les 4 propriétés ACID</h2>
+        <p>Tout SGBD relationnel digne de ce nom garantit ces 4 propriétés pour ses transactions.</p>
+
+        <div class="acid-grid">
+          <div class="acid-cell">
+            <div class="letter">A</div>
+            <div class="word">Atomicité</div>
+            <div class="desc">Tout ou rien. Si une opération échoue, toutes les autres sont annulées. Garantie par <strong>COMMIT / ROLLBACK</strong>.</div>
+          </div>
+          <div class="acid-cell">
+            <div class="letter">C</div>
+            <div class="word">Cohérence</div>
+            <div class="desc">La base passe d'un état cohérent à un autre. Les contraintes (clés, CHECK, FK) doivent rester valides après chaque transaction.</div>
+          </div>
+          <div class="acid-cell">
+            <div class="letter">I</div>
+            <div class="word">Isolation</div>
+            <div class="desc">Deux transactions concurrentes ne doivent pas se voir mutuellement avant le COMMIT. Garantie par des <strong>verrous</strong>.</div>
+          </div>
+          <div class="acid-cell">
+            <div class="letter">D</div>
+            <div class="word">Durabilité</div>
+            <div class="desc">Une fois committée, une transaction est gravée — même en cas de panne. Garantie par les <strong>LOGS</strong> (write-ahead logging).</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3.3 Anomalies -->
+      <div class="subsection" id="sub-cm3-3">
+        <h2>Anomalies de concurrence</h2>
+        <p>Sans isolation, voici les 4 désastres classiques qui arrivent quand plusieurs transactions s'exécutent en parallèle.</p>
+
+        <div class="def warn">
+          <div class="def-term">Dirty Read (lecture sale)</div>
+          T1 lit une donnée que T2 a modifiée mais pas encore committée. Si T2 fait ROLLBACK, T1 a lu une donnée qui n'a jamais existé.
+        </div>
+
+        <div class="def warn">
+          <div class="def-term">Lost Update (mise à jour perdue)</div>
+          T1 et T2 lisent la même valeur, la modifient chacune, puis écrivent. La 2ᵉ écriture écrase la 1ʳᵉ : un des deux updates est perdu.
+        </div>
+
+        <div class="def warn">
+          <div class="def-term">Non-repeatable Read (lecture non reproductible)</div>
+          T1 lit une ligne, T2 la modifie et commit, T1 la relit et trouve une valeur différente. Mauvais si T1 fait des calculs cohérents.
+        </div>
+
+        <div class="def warn">
+          <div class="def-term">Phantom Read (lecture fantôme)</div>
+          T1 fait <code>SELECT</code> avec un <code>WHERE</code>. T2 insère une ligne qui correspond au <code>WHERE</code> et commit. T1 refait le <code>SELECT</code> : une nouvelle ligne « fantôme » apparaît.
+        </div>
+      </div>
+
+      <!-- 3.4 Sérialisabilité -->
+      <div class="subsection" id="sub-cm3-4">
+        <h2>Sérialisabilité &amp; équivalence de conflits</h2>
+        <div class="def">
+          <div class="def-term">Exécution sérielle</div>
+          Les transactions s'exécutent l'une après l'autre, sans entrelacement. Toujours correcte, mais lente.
+        </div>
+        <div class="def">
+          <div class="def-term">Exécution concurrente sérialisable</div>
+          Les transactions s'entrelacent, mais le résultat final est <strong>identique</strong> à une exécution sérielle. C'est le Saint Graal.
+        </div>
+
+        <h3>Équivalence de conflits</h3>
+        <p>Deux opérations sont en <strong>conflit</strong> si :</p>
+        <ul>
+          <li>Elles appartiennent à deux transactions différentes</li>
+          <li>Elles accèdent au même élément</li>
+          <li>Au moins une des deux est une écriture</li>
+        </ul>
+        <p>Donc les paires en conflit sont : R/W, W/R, W/W. Pas R/R.</p>
+        <p>Deux exécutions sont <strong>équivalentes par conflit</strong> si on peut transformer l'une en l'autre en permutant des opérations <em>non conflictuelles</em>. Si une exécution est équivalente à une exécution sérielle → elle est sérialisable.</p>
+      </div>
+
+      <!-- 3.5 Verrous -->
+      <div class="subsection" id="sub-cm3-5">
+        <h2>Verrous (locks)</h2>
+        <p>Mécanisme principal pour garantir l'isolation.</p>
+
+        <div class="grid-2">
+          <div class="def ok">
+            <div class="def-term">Verrou partagé S (Shared)</div>
+            Posé pour lire. Plusieurs transactions peuvent avoir un verrou S simultanément sur la même donnée.
+          </div>
+          <div class="def warn">
+            <div class="def-term">Verrou exclusif X (eXclusive)</div>
+            Posé pour écrire. <strong>Aucune</strong> autre transaction ne peut avoir de verrou (S ou X) en même temps.
+          </div>
+        </div>
+
+        <h3>Strict 2-Phase Locking (S2PL)</h3>
+        <p>Protocole standard : tous les verrous (S et X) sont relâchés <strong>uniquement à la fin</strong> de la transaction (au COMMIT ou ROLLBACK). Garantit la sérialisabilité.</p>
+
+        <h3>Deadlock (interblocage)</h3>
+        <div class="def warn">
+          <div class="def-term">Définition</div>
+          T1 attend un verrou détenu par T2, et T2 attend un verrou détenu par T1. Aucune ne peut avancer.
+        </div>
+        <div class="ref-grid">
+          <div>Prévention</div><div>Ordre fixe d'acquisition des verrous (toutes les transactions verrouillent les tables dans le même ordre).</div>
+          <div>Détection</div><div>Le SGBD construit un graphe d'attente. Si un cycle apparaît → il tue une des transactions (la « victime »).</div>
+        </div>
+      </div>
+
+      <!-- 3.6 Pratique -->
+      <div class="subsection" id="sub-cm3-6">
+        <h2>Pratique — Transactions</h2>
+        <p>SQLite supporte <code>BEGIN TRANSACTION</code>, <code>COMMIT</code> et <code>ROLLBACK</code>. Essaie de simuler un transfert qui échoue.</p>
+
+        <div class="ide" data-ide="cm3-tx">
+          <div class="ide-header">
+            <div class="ide-title">SQL — Transactions</div>
+            <div class="ide-actions">
+              <button class="btn small ghost" data-action="reset">↺ Reset</button>
+              <button class="btn small ghost" data-action="ask-mistral">✦ Mistral</button>
+              <button class="btn small primary" data-action="run">▶ Exécuter</button>
+            </div>
+          </div>
+          <textarea class="ide-editor" spellcheck="false">-- Crée une table simple
+CREATE TABLE IF NOT EXISTS comptes(
+  id INTEGER PRIMARY KEY,
+  proprietaire TEXT,
+  solde REAL
+);
+DELETE FROM comptes;
+INSERT INTO comptes VALUES (1,'Alice',1000),(2,'Bob',500);
+
+SELECT * FROM comptes;
+
+-- Transaction réussie
+BEGIN TRANSACTION;
+UPDATE comptes SET solde = solde - 200 WHERE id = 1;
+UPDATE comptes SET solde = solde + 200 WHERE id = 2;
+COMMIT;
+
+SELECT * FROM comptes;
+
+-- Transaction annulée
+BEGIN TRANSACTION;
+UPDATE comptes SET solde = solde - 999999 WHERE id = 1;
+ROLLBACK;
+
+-- Solde inchangé après ROLLBACK
+SELECT * FROM comptes;
+</textarea>
+          <div class="ide-output"></div>
+        </div>
+
+        <div class="mistral-panel" data-mistral="cm3-tx" style="display:none;">
+          <div class="mistral-head">Assistant Mistral</div>
+          <div class="mistral-content"></div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn ghost" data-action="generate-exo" data-context="transactions">✦ Générer un nouvel exercice</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== CM4 - PROCEDURES & TRIGGERS ====================== -->
+    <section class="section" id="section-cm4">
+      <div class="chapter-tag">CM4 — Bases de Données Avancées</div>
+      <h1 class="chapter-title">Procédures stockées &amp; <em>triggers</em>.</h1>
+      <p class="chapter-lead">Du code qui vit <strong>dans</strong> la base de données. Plus rapide, plus sûr, et déclenchable automatiquement sur certains événements.</p>
+
+      <div class="subnav">
+        <div class="subnav-item active" data-sub="cm4-1">Pourquoi ?</div>
+        <div class="subnav-item" data-sub="cm4-2">Procédures</div>
+        <div class="subnav-item" data-sub="cm4-3">Fonctions</div>
+        <div class="subnav-item" data-sub="cm4-4">Variables</div>
+        <div class="subnav-item" data-sub="cm4-5">Triggers</div>
+        <div class="subnav-item" data-sub="cm4-6">Pratique</div>
+      </div>
+
+      <!-- 4.1 Pourquoi -->
+      <div class="subsection active" id="sub-cm4-1">
+        <h2>Programmes stockés</h2>
+        <div class="def">
+          <div class="def-term">Définition</div>
+          Un programme stocké est du code <strong>compilé et exécuté côté serveur</strong>. Il existe deux formes principales : les <strong>procédures</strong> (qu'on appelle explicitement avec <code>CALL</code>) et les <strong>triggers</strong> (déclenchés automatiquement).
+        </div>
+
+        <h3>Pourquoi ?</h3>
+        <div class="ref-grid">
+          <div>Performance</div><div>Précompilé une fois, exécuté plein de fois — pas d'aller-retour réseau.</div>
+          <div>Sécurité</div><div>L'utilisateur appelle la procédure sans avoir besoin de droits directs sur les tables.</div>
+          <div>Réutilisation</div><div>Une logique métier centralisée, partagée entre toutes les applis qui parlent à la base.</div>
+          <div>Intégrité</div><div>Les triggers garantissent que certaines règles métier sont <em>toujours</em> appliquées.</div>
+        </div>
+
+        <h3>Différents dialectes</h3>
+        <div class="ref-grid">
+          <div>Oracle</div><div>PL/SQL</div>
+          <div>SQL Server</div><div>T-SQL (Transact-SQL)</div>
+          <div>PostgreSQL</div><div>PL/pgSQL</div>
+          <div>MySQL</div><div>MySQL Stored Procedure Language (SPL)</div>
+        </div>
+      </div>
+
+      <!-- 4.2 Procédures -->
+      <div class="subsection" id="sub-cm4-2">
+        <h2>Procédures stockées (MySQL)</h2>
+
+        <h3>Syntaxe</h3>
+        <pre><span class="sql-kw">DELIMITER</span> //
+<span class="sql-kw">CREATE PROCEDURE</span> nom_proc(<span class="sql-kw">IN</span> p1 <span class="sql-kw">INT</span>, <span class="sql-kw">OUT</span> p2 <span class="sql-kw">VARCHAR</span>(50))
+<span class="sql-kw">BEGIN</span>
+  <span class="sql-com">-- corps de la procédure</span>
+  <span class="sql-kw">SELECT</span> nom <span class="sql-kw">INTO</span> p2 <span class="sql-kw">FROM</span> employes <span class="sql-kw">WHERE</span> id = p1;
+<span class="sql-kw">END</span>//
+<span class="sql-kw">DELIMITER</span> ;</pre>
+        <p>Le <code>DELIMITER //</code> est nécessaire car le corps de la procédure contient des <code>;</code>. Sans ça, MySQL exécuterait chaque instruction interne séparément.</p>
+
+        <h3>Paramètres</h3>
+        <div class="ref-grid">
+          <div>IN</div><div>Paramètre d'entrée (défaut). Lu par la procédure.</div>
+          <div>OUT</div><div>Paramètre de sortie. Écrit par la procédure, récupéré par l'appelant.</div>
+          <div>INOUT</div><div>Les deux : on passe une valeur, la procédure peut la modifier.</div>
+        </div>
+
+        <h3>Appel</h3>
+        <pre><span class="sql-kw">CALL</span> nom_proc(42, @resultat);
+<span class="sql-kw">SELECT</span> @resultat;</pre>
+
+        <h3>Suppression</h3>
+        <pre><span class="sql-kw">DROP PROCEDURE</span> [<span class="sql-kw">IF EXISTS</span>] nom_proc;</pre>
+      </div>
+
+      <!-- 4.3 Fonctions -->
+      <div class="subsection" id="sub-cm4-3">
+        <h2>Fonctions stockées</h2>
+        <p>Une fonction est comme une procédure, mais elle <strong>retourne une valeur</strong> et s'utilise dans des expressions SQL (<code>SELECT</code>, <code>WHERE</code>…).</p>
+
+        <pre><span class="sql-kw">DELIMITER</span> //
+<span class="sql-kw">CREATE FUNCTION</span> bonus(salaire <span class="sql-kw">DECIMAL</span>(10,2))
+<span class="sql-kw">RETURNS</span> <span class="sql-kw">DECIMAL</span>(10,2)
+<span class="sql-kw">DETERMINISTIC</span>
+<span class="sql-kw">BEGIN</span>
+  <span class="sql-kw">RETURN</span> salaire * 0.10;
+<span class="sql-kw">END</span>//
+<span class="sql-kw">DELIMITER</span> ;
+
+<span class="sql-com">-- Utilisation</span>
+<span class="sql-kw">SELECT</span> nom, salaire, bonus(salaire) <span class="sql-kw">FROM</span> employes;</pre>
+
+        <div class="ref-grid">
+          <div>DETERMINISTIC</div><div>Pour les mêmes entrées, retourne toujours la même sortie (sans effet de bord).</div>
+          <div>NOT DETERMINISTIC</div><div>La sortie peut varier (ex : utilise NOW(), RAND()).</div>
+        </div>
+
+        <h3>Procédure vs Fonction</h3>
+        <div class="ref-grid">
+          <div>Procédure</div><div>Appelée avec CALL. Peut ne rien retourner ou utiliser OUT.</div>
+          <div>Fonction</div><div>Appelée dans une expression. Retourne TOUJOURS une valeur via RETURN.</div>
+        </div>
+      </div>
+
+      <!-- 4.4 Variables -->
+      <div class="subsection" id="sub-cm4-4">
+        <h2>Variables</h2>
+
+        <div class="def">
+          <div class="def-term">Variables utilisateur — <code>@nom</code></div>
+          Préfixées par <code>@</code>. Persistent toute la durée de la session. Pas besoin de DECLARE.
+          <pre style="margin-top:10px;"><span class="sql-kw">SET</span> @total = 0;
+<span class="sql-kw">SELECT</span> <span class="sql-kw">SUM</span>(montant) <span class="sql-kw">INTO</span> @total <span class="sql-kw">FROM</span> ventes;
+<span class="sql-kw">SELECT</span> @total;</pre>
+        </div>
+
+        <div class="def">
+          <div class="def-term">Variables locales — <code>DECLARE</code></div>
+          Déclarées dans un bloc <code>BEGIN…END</code>. N'existent que dans ce bloc.
+          <pre style="margin-top:10px;"><span class="sql-kw">BEGIN</span>
+  <span class="sql-kw">DECLARE</span> compteur <span class="sql-kw">INT</span> <span class="sql-kw">DEFAULT</span> 0;
+  <span class="sql-kw">SET</span> compteur = compteur + 1;
+<span class="sql-kw">END</span></pre>
+        </div>
+
+        <div class="def">
+          <div class="def-term">Variables système — <code>@@nom</code></div>
+          Préfixées par <code>@@</code>. Configuration du serveur. Ex : <code>@@version</code>, <code>@@autocommit</code>.
+        </div>
+      </div>
+
+      <!-- 4.5 Triggers -->
+      <div class="subsection" id="sub-cm4-5">
+        <h2>Triggers (déclencheurs)</h2>
+        <div class="def">
+          <div class="def-term">Définition</div>
+          Un trigger est un programme stocké qui s'exécute <strong>automatiquement</strong> avant ou après un <code>INSERT</code>, <code>UPDATE</code> ou <code>DELETE</code> sur une table donnée.
+        </div>
+
+        <h3>Syntaxe (MySQL)</h3>
+        <pre><span class="sql-kw">CREATE TRIGGER</span> nom_trigger
+{<span class="sql-kw">BEFORE</span> | <span class="sql-kw">AFTER</span>} {<span class="sql-kw">INSERT</span> | <span class="sql-kw">UPDATE</span> | <span class="sql-kw">DELETE</span>}
+<span class="sql-kw">ON</span> nom_table
+<span class="sql-kw">FOR EACH ROW</span>
+<span class="sql-kw">BEGIN</span>
+  <span class="sql-com">-- corps du trigger</span>
+<span class="sql-kw">END</span>;</pre>
+
+        <h3>Accéder aux valeurs</h3>
+        <div class="ref-grid">
+          <div>NEW.col</div><div>Disponible pour INSERT et UPDATE. La nouvelle valeur.</div>
+          <div>OLD.col</div><div>Disponible pour UPDATE et DELETE. L'ancienne valeur.</div>
+        </div>
+
+        <h3>Exemple — borner un montant entre 0 et 100</h3>
+        <pre><span class="sql-kw">DELIMITER</span> //
+<span class="sql-kw">CREATE TRIGGER</span> borner_montant
+<span class="sql-kw">BEFORE INSERT</span> <span class="sql-kw">ON</span> ventes
+<span class="sql-kw">FOR EACH ROW</span>
+<span class="sql-kw">BEGIN</span>
+  <span class="sql-kw">IF</span> <span class="sql-kw">NEW</span>.montant &lt; 0 <span class="sql-kw">THEN</span> <span class="sql-kw">SET</span> <span class="sql-kw">NEW</span>.montant = 0;
+  <span class="sql-kw">ELSEIF</span> <span class="sql-kw">NEW</span>.montant &gt; 100 <span class="sql-kw">THEN</span> <span class="sql-kw">SET</span> <span class="sql-kw">NEW</span>.montant = 100;
+  <span class="sql-kw">END IF</span>;
+<span class="sql-kw">END</span>//
+<span class="sql-kw">DELIMITER</span> ;</pre>
+
+        <h3>Cas d'usage typiques</h3>
+        <ul>
+          <li><strong>Audit</strong> : journaliser chaque modification d'une table sensible</li>
+          <li><strong>Validation</strong> : refuser ou corriger les valeurs invalides</li>
+          <li><strong>Cascade métier</strong> : mettre à jour des compteurs, des stocks, des soldes…</li>
+          <li><strong>Historique</strong> : copier l'ancienne ligne dans une table d'archive avant UPDATE/DELETE</li>
+        </ul>
+      </div>
+
+      <!-- 4.6 Pratique -->
+      <div class="subsection" id="sub-cm4-6">
+        <h2>Pratique — Triggers</h2>
+        <div class="def warn">
+          <div class="def-term">Note</div>
+          SQLite (utilisé par l'IDE) supporte les triggers mais avec une syntaxe légèrement différente de MySQL : pas de <code>BEGIN…END</code> imbriqué autour d'une seule instruction, pas de <code>DELIMITER</code>, et l'on utilise <code>WHEN</code> pour conditionner.
+        </div>
+
+        <div class="ide" data-ide="cm4-trig">
+          <div class="ide-header">
+            <div class="ide-title">SQL — Triggers (syntaxe SQLite)</div>
+            <div class="ide-actions">
+              <button class="btn small ghost" data-action="reset">↺ Reset</button>
+              <button class="btn small ghost" data-action="ask-mistral">✦ Mistral</button>
+              <button class="btn small primary" data-action="run">▶ Exécuter</button>
+            </div>
+          </div>
+          <textarea class="ide-editor" spellcheck="false">-- Table d'audit
+CREATE TABLE IF NOT EXISTS audit_employes(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  emp_id INTEGER,
+  ancien_salaire REAL,
+  nouveau_salaire REAL,
+  date_modif TEXT
+);
+
+-- Trigger : journaliser chaque changement de salaire
+DROP TRIGGER IF EXISTS trig_audit_salaire;
+CREATE TRIGGER trig_audit_salaire
+AFTER UPDATE OF salaire ON employes
+FOR EACH ROW
+WHEN OLD.salaire <> NEW.salaire
+BEGIN
+  INSERT INTO audit_employes(emp_id, ancien_salaire, nouveau_salaire, date_modif)
+  VALUES (OLD.id, OLD.salaire, NEW.salaire, datetime('now'));
+END;
+
+-- Teste
+UPDATE employes SET salaire = salaire * 1.05 WHERE dept_id = 1;
+
+-- Inspecte l'audit
+SELECT * FROM audit_employes;
+</textarea>
+          <div class="ide-output"></div>
+        </div>
+
+        <div class="mistral-panel" data-mistral="cm4-trig" style="display:none;">
+          <div class="mistral-head">Assistant Mistral</div>
+          <div class="mistral-content"></div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn ghost" data-action="generate-exo" data-context="procedures-triggers">✦ Générer un nouvel exercice</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== IDE LIBRE ====================== -->
+    <section class="section" id="section-ide">
+      <div class="chapter-tag">Pratique</div>
+      <h1 class="chapter-title">IDE SQL <em>libre</em>.</h1>
+      <p class="chapter-lead">Une base SQLite préchargée avec un schéma d'entraînement. Écris tes requêtes, teste tes idées, sans contrainte.</p>
+
+      <div class="btn-row">
+        <button class="btn ghost" id="showSchemaBtn">⚏ Afficher le schéma</button>
+        <button class="btn ghost" data-action="reset" data-target-ide="ide-free">↺ Reset complet de la base</button>
+      </div>
+
+      <div id="schemaPanel" style="display:none; margin: 20px 0;">
+        <pre>-- Tables disponibles
+departements(id, nom, ville)
+employes(id, nom, prenom, salaire, dept_id → departements.id, date_embauche)
+produits(id, libelle, prix, stock, categorie)
+clients(id, nom, email, ville)
+commandes(id, client_id → clients.id, produit_id → produits.id, quantite, date_commande)
+ventes_brutes(NomClient, VilleClient, NomProduit, PrixProduit, Quantite, DateVente)
+  -- Table volontairement mal conçue pour les exercices de normalisation</pre>
+      </div>
+
+      <div class="ide" data-ide="ide-free">
+        <div class="ide-header">
+          <div class="ide-title">SQL — Espace libre</div>
+          <div class="ide-actions">
+            <button class="btn small ghost" data-action="ask-mistral">✦ Mistral</button>
+            <button class="btn small primary" data-action="run">▶ Exécuter</button>
+          </div>
+        </div>
+        <textarea class="ide-editor" spellcheck="false">-- Bienvenue dans ton bac à sable
+-- Quelques idées pour démarrer :
+
+SELECT d.nom AS departement, COUNT(*) AS nb_emp, AVG(e.salaire) AS salaire_moyen
+FROM departements d
+LEFT JOIN employes e ON e.dept_id = d.id
+GROUP BY d.id
+ORDER BY salaire_moyen DESC;
+</textarea>
+        <div class="ide-output"></div>
+      </div>
+
+      <div class="mistral-panel" data-mistral="ide-free" style="display:none;">
+        <div class="mistral-head">Assistant Mistral</div>
+        <div class="mistral-content"></div>
+      </div>
+    </section>
+
+    <!-- ====================== QUIZ ====================== -->
+    <section class="section" id="section-quiz">
+      <div class="chapter-tag">Pratique</div>
+      <h1 class="chapter-title">Quiz de <em>révision</em>.</h1>
+      <p class="chapter-lead">20 questions pour tester ta compréhension à travers les 4 chapitres. Clique sur une option pour voir la correction.</p>
+
+      <div class="btn-row">
+        <button class="btn ghost" id="resetQuizBtn">↺ Réinitialiser</button>
+        <button class="btn ghost" id="generateQuizBtn">✦ Nouvelles questions via Mistral</button>
+        <span style="color:var(--text-muted); font-family:var(--mono); font-size:12px; align-self:center;">Score : <span id="quizScore">0</span>/<span id="quizTotal">20</span></span>
+      </div>
+
+      <div id="quizContainer"></div>
+    </section>
+
+    <!-- ====================== SETTINGS ====================== -->
+    <section class="section" id="section-settings">
+      <div class="chapter-tag">Outils</div>
+      <h1 class="chapter-title">Paramètres &amp; <em>API Mistral</em>.</h1>
+      <p class="chapter-lead">Colle ta clé API Mistral pour activer la correction automatique et la génération d'exercices. La clé reste en mémoire dans ton navigateur, jamais envoyée ailleurs qu'à <code>api.mistral.ai</code>.</p>
+
+      <div class="def warn" style="margin-bottom: 24px;">
+        <div class="def-term">Note de sécurité</div>
+        La clé n'est <strong>pas persistée</strong> (rechargement de page = clé perdue). Récupère-la sur <a href="https://console.mistral.ai/" target="_blank" rel="noopener" style="color:var(--accent);">console.mistral.ai</a>.
+      </div>
+
+      <div class="form-row">
+        <label for="apiKeyInput">Clé API Mistral</label>
+        <input type="password" id="apiKeyInput" placeholder="••••••••••••••••••••••••••••••••" autocomplete="off"/>
+      </div>
+
+      <div class="form-row">
+        <label for="modelSelect">Modèle</label>
+        <select id="modelSelect">
+          <option value="mistral-small-latest">mistral-small-latest (rapide, gratuit)</option>
+          <option value="mistral-medium-latest">mistral-medium-latest</option>
+          <option value="mistral-large-latest">mistral-large-latest (plus précis, plus cher)</option>
+          <option value="codestral-latest">codestral-latest (spécialisé code/SQL)</option>
+        </select>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn primary" id="saveApiBtn">Enregistrer</button>
+        <button class="btn ghost" id="testApiBtn">Tester la connexion</button>
+        <button class="btn ghost" id="clearApiBtn">Effacer</button>
+      </div>
+
+      <div id="apiTestResult" style="margin-top: 20px;"></div>
+    </section>
+  </main>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+<script>
+//=========================================================================
+//  ÉTAT GLOBAL
+//=========================================================================
+const state = {
+  apiKey: null,
+  model: 'mistral-small-latest',
+  db: null,
+  SQL: null,
+  quizQuestions: null,
+  quizAnswers: {},
+};
+
+//=========================================================================
+//  SCHEMA SQL D'ENTRAÎNEMENT
+//=========================================================================
+const SCHEMA_SQL = `
+DROP TABLE IF EXISTS commandes;
+DROP TABLE IF EXISTS produits;
+DROP TABLE IF EXISTS clients;
+DROP TABLE IF EXISTS employes;
+DROP TABLE IF EXISTS departements;
+DROP TABLE IF EXISTS ventes_brutes;
+
+CREATE TABLE departements(
+  id INTEGER PRIMARY KEY,
+  nom TEXT NOT NULL,
+  ville TEXT
+);
+
+CREATE TABLE employes(
+  id INTEGER PRIMARY KEY,
+  nom TEXT NOT NULL,
+  prenom TEXT,
+  salaire REAL,
+  dept_id INTEGER,
+  date_embauche TEXT,
+  FOREIGN KEY (dept_id) REFERENCES departements(id)
+);
+
+CREATE TABLE produits(
+  id INTEGER PRIMARY KEY,
+  libelle TEXT,
+  prix REAL,
+  stock INTEGER,
+  categorie TEXT
+);
+
+CREATE TABLE clients(
+  id INTEGER PRIMARY KEY,
+  nom TEXT,
+  email TEXT,
+  ville TEXT
+);
+
+CREATE TABLE commandes(
+  id INTEGER PRIMARY KEY,
+  client_id INTEGER,
+  produit_id INTEGER,
+  quantite INTEGER,
+  date_commande TEXT,
+  FOREIGN KEY (client_id) REFERENCES clients(id),
+  FOREIGN KEY (produit_id) REFERENCES produits(id)
+);
+
+CREATE TABLE ventes_brutes(
+  NomClient TEXT,
+  VilleClient TEXT,
+  NomProduit TEXT,
+  PrixProduit REAL,
+  Quantite INTEGER,
+  DateVente TEXT
+);
+
+INSERT INTO departements VALUES
+ (1,'Ingénierie','Paris'),
+ (2,'Commerce','Lyon'),
+ (3,'RH','Marseille'),
+ (4,'Marketing','Paris');
+
+INSERT INTO employes VALUES
+ (1,'Dupont','Alice',3200,1,'2020-03-15'),
+ (2,'Martin','Bob',4100,1,'2018-09-01'),
+ (3,'Bernard','Claire',2800,2,'2021-06-12'),
+ (4,'Lambert','David',3500,2,'2019-11-23'),
+ (5,'Robert','Émilie',2950,3,'2022-01-10'),
+ (6,'Petit','Florent',3800,4,'2017-04-05'),
+ (7,'Durand','Gabrielle',4500,1,'2016-08-19'),
+ (8,'Leroy','Hugo',3100,2,'2023-02-28');
+
+INSERT INTO produits VALUES
+ (1,'Clavier mécanique',89.90,45,'Périphérique'),
+ (2,'Souris ergonomique',49.50,120,'Périphérique'),
+ (3,'Écran 27"',329.00,18,'Affichage'),
+ (4,'Webcam HD',75.00,60,'Audio/Vidéo'),
+ (5,'Casque sans fil',129.99,33,'Audio/Vidéo'),
+ (6,'Disque SSD 1To',95.00,80,'Stockage');
+
+INSERT INTO clients VALUES
+ (1,'Boulanger SAS','contact@boulanger.fr','Paris'),
+ (2,'TechCorp','admin@techcorp.fr','Lyon'),
+ (3,'StartupX','hello@startupx.io','Bordeaux'),
+ (4,'GrandGroupe','info@grandgroupe.com','Paris');
+
+INSERT INTO commandes VALUES
+ (1,1,1,5,'2024-09-10'),
+ (2,1,3,2,'2024-09-12'),
+ (3,2,5,8,'2024-09-15'),
+ (4,3,2,15,'2024-09-18'),
+ (5,4,6,4,'2024-10-01'),
+ (6,2,4,3,'2024-10-05'),
+ (7,1,2,10,'2024-10-08');
+
+INSERT INTO ventes_brutes VALUES
+ ('Boulanger SAS','Paris','Clavier mécanique',89.90,5,'2024-09-10'),
+ ('Boulanger SAS','Paris','Écran 27"',329.00,2,'2024-09-12'),
+ ('TechCorp','Lyon','Casque sans fil',129.99,8,'2024-09-15'),
+ ('StartupX','Bordeaux','Souris ergonomique',49.50,15,'2024-09-18'),
+ ('GrandGroupe','Paris','Disque SSD 1To',95.00,4,'2024-10-01'),
+ ('TechCorp','Lyon','Webcam HD',75.00,3,'2024-10-05'),
+ ('Boulanger SAS','Paris','Souris ergonomique',49.50,10,'2024-10-08');
+`;
+
+//=========================================================================
+//  INITIALISATION SQL.js
+//=========================================================================
+async function initDb() {
+  state.SQL = await initSqlJs({
+    locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}`
+  });
+  state.db = new state.SQL.Database();
+  state.db.exec(SCHEMA_SQL);
+}
+
+function resetDb() {
+  state.db = new state.SQL.Database();
+  state.db.exec(SCHEMA_SQL);
+}
+
+//=========================================================================
+//  EXECUTION SQL DANS UN IDE
+//=========================================================================
+function runIde(ideEl) {
+  const editor = ideEl.querySelector('.ide-editor');
+  const output = ideEl.querySelector('.ide-output');
+  const sql = editor.value;
+  output.innerHTML = '';
+
+  if (!state.db) {
+    output.innerHTML = '<div class="err">Base de données pas encore prête, réessaye dans une seconde.</div>';
+    return;
+  }
+
+  try {
+    const results = state.db.exec(sql);
+    if (results.length === 0) {
+      output.innerHTML = '<div class="ok-msg">✓ Exécuté sans résultat à afficher (DDL/DML).</div>';
+      return;
+    }
+    let html = '';
+    results.forEach((res, i) => {
+      html += '<div class="result-block">';
+      if (results.length > 1) html += `<div class="result-label">Résultat ${i+1}</div>`;
+      html += '<table class="result-table"><thead><tr>';
+      res.columns.forEach(c => html += `<th>${escapeHtml(c)}</th>`);
+      html += '</tr></thead><tbody>';
+      res.values.forEach(row => {
+        html += '<tr>';
+        row.forEach(cell => html += `<td>${escapeHtml(cell === null ? 'NULL' : String(cell))}</td>`);
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+    });
+    output.innerHTML = html;
+  } catch (e) {
+    output.innerHTML = `<div class="err">⚠ Erreur SQL : ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+//=========================================================================
+//  MISTRAL API
+//=========================================================================
+async function callMistral(messages, opts = {}) {
+  if (!state.apiKey) throw new Error("Aucune clé API. Configure-la dans Paramètres.");
+  const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${state.apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: opts.model || state.model,
+      messages,
+      temperature: opts.temperature ?? 0.4,
+    }),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Mistral ${res.status} : ${txt}`);
+  }
+  const data = await res.json();
+  return data.choices[0].message.content;
+}
+
+async function askMistralOnIde(ideEl) {
+  const ideName = ideEl.dataset.ide;
+  const panel = document.querySelector(`.mistral-panel[data-mistral="${ideName}"]`);
+  if (!panel) return;
+  panel.style.display = 'block';
+  const content = panel.querySelector('.mistral-content');
+
+  if (!state.apiKey) {
+    content.innerHTML = '<p style="color:var(--red);">Aucune clé API configurée. Va dans <strong>Paramètres</strong> pour la coller.</p>';
+    return;
+  }
+
+  const sql = ideEl.querySelector('.ide-editor').value;
+  content.innerHTML = '<p style="color:var(--text-muted);">Mistral réfléchit…</p>';
+
+  try {
+    const answer = await callMistral([
+      {
+        role: 'system',
+        content: "Tu es un assistant pédagogique pour un cours de Bases de Données Avancées (niveau M1). L'élève travaille dans un IDE SQLite. Tu corriges ses requêtes SQL, expliques ses erreurs, suggères des améliorations, ou réponds à ses questions. Réponds en français, de manière concise et structurée. Utilise du markdown léger (titres, listes, blocs de code)."
+      },
+      {
+        role: 'user',
+        content: `Voici ma requête SQL :\n\n\`\`\`sql\n${sql}\n\`\`\`\n\nPeux-tu la relire, m'indiquer s'il y a des erreurs, et me suggérer des améliorations ? Si elle est correcte, propose-moi une variante ou un exercice de complexité supérieure.`
+      }
+    ]);
+    content.innerHTML = renderMarkdownLite(answer);
+  } catch (e) {
+    content.innerHTML = `<p style="color:var(--red);">Erreur : ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function generateExo(btn) {
+  const context = btn.dataset.context;
+  const section = btn.closest('.subsection') || btn.closest('section');
+  let target = section.querySelector('.mistral-panel');
+  if (!target) {
+    target = document.createElement('div');
+    target.className = 'mistral-panel';
+    target.style.marginTop = '20px';
+    target.innerHTML = '<div class="mistral-head">Assistant Mistral — exercice</div><div class="mistral-content"></div>';
+    btn.parentElement.after(target);
+  }
+  target.style.display = 'block';
+  const content = target.querySelector('.mistral-content');
+
+  if (!state.apiKey) {
+    content.innerHTML = '<p style="color:var(--red);">Aucune clé API configurée. Va dans <strong>Paramètres</strong> pour la coller.</p>';
+    return;
+  }
+
+  content.innerHTML = '<p style="color:var(--text-muted);">Mistral génère un exercice…</p>';
+
+  const schemaHint = "Base SQLite disponible : tables departements(id,nom,ville), employes(id,nom,prenom,salaire,dept_id,date_embauche), produits(id,libelle,prix,stock,categorie), clients(id,nom,email,ville), commandes(id,client_id,produit_id,quantite,date_commande), ventes_brutes(NomClient,VilleClient,NomProduit,PrixProduit,Quantite,DateVente).";
+
+  try {
+    const answer = await callMistral([
+      {
+        role: 'system',
+        content: `Tu es un assistant pédagogique pour un cours de Bases de Données Avancées (niveau M1). Tu génères des petits exercices SQL ciblés sur le thème demandé. ${schemaHint} Réponds en français, structuré en : 1) Énoncé clair, 2) Indice (optionnel), 3) Une solution attendue cachée dans un bloc <details>. Utilise du markdown léger.`
+      },
+      {
+        role: 'user',
+        content: `Génère-moi un exercice de difficulté progressive sur le thème : ${context}. L'exercice doit être réalisable dans un IDE SQLite à partir de la base décrite. Pas de DELIMITER ni CREATE PROCEDURE (non supportés). Préfère des CREATE VIEW, CREATE INDEX, BEGIN/COMMIT/ROLLBACK, CREATE TRIGGER selon le thème.`
+      }
+    ], { temperature: 0.7 });
+    content.innerHTML = renderMarkdownLite(answer);
+  } catch (e) {
+    content.innerHTML = `<p style="color:var(--red);">Erreur : ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+//=========================================================================
+//  QUIZ
+//=========================================================================
+const QUIZ_QUESTIONS = [
+  { q: "Une dépendance fonctionnelle X → Y est dite élémentaire si…", o: [
+    "X est une clé candidate",
+    "Y n'est composé que d'un seul attribut, et aucun sous-ensemble strict de X ne détermine Y",
+    "Y dépend transitivement de X",
+    "X est unique dans la table"
+  ], a: 1 },
+  { q: "Une table est en 3FN si elle est en 2FN et…", o: [
+    "Aucun attribut non-clé ne dépend transitivement de la clé primaire",
+    "Tous les attributs sont atomiques",
+    "Toutes les clés candidates sont identifiées",
+    "Elle n'a aucune dépendance fonctionnelle"
+  ], a: 0 },
+  { q: "BCNF est plus stricte que 3FN. Quelle est la condition supplémentaire ?", o: [
+    "Pas de valeur NULL",
+    "Toutes les dépendances fonctionnelles ont une super-clé comme déterminant",
+    "Toutes les tables doivent avoir une clé primaire numérique",
+    "Pas de clé étrangère"
+  ], a: 1 },
+  { q: "Une vue virtuelle…", o: [
+    "Stocke physiquement le résultat de la requête",
+    "Ne stocke rien, c'est une table logique recalculée à chaque appel",
+    "Améliore toujours les performances",
+    "Ne peut pas être utilisée dans un SELECT"
+  ], a: 1 },
+  { q: "Que fait WITH CHECK OPTION sur une vue ?", o: [
+    "Vérifie les types de données",
+    "Empêche les INSERT/UPDATE via la vue qui violeraient sa condition WHERE",
+    "Force la matérialisation",
+    "Active la mise en cache"
+  ], a: 1 },
+  { q: "Pourquoi créer un index sur une colonne ?", o: [
+    "Accélérer les recherches sur cette colonne",
+    "Économiser de l'espace disque",
+    "Empêcher les doublons",
+    "Compresser les données"
+  ], a: 0 },
+  { q: "Pour donner un droit de SELECT sur une seule colonne d'une table, on doit…", o: [
+    "Utiliser GRANT SELECT(col) — c'est natif partout",
+    "Créer une vue ne contenant que cette colonne et accorder le SELECT sur la vue",
+    "C'est impossible",
+    "Utiliser REVOKE COLUMN"
+  ], a: 1 },
+  { q: "Que signifie WITH GRANT OPTION dans GRANT ?", o: [
+    "L'utilisateur peut transmettre le droit à d'autres utilisateurs",
+    "Le droit est temporaire",
+    "Le droit nécessite une confirmation",
+    "Le droit s'applique à toute la base"
+  ], a: 0 },
+  { q: "Une transaction respecte ACID. Que signifie le 'A' ?", o: [
+    "Authentique",
+    "Atomicité — tout ou rien",
+    "Asynchrone",
+    "Automatique"
+  ], a: 1 },
+  { q: "Quelle propriété ACID est garantie par les LOGS ?", o: [
+    "Atomicité",
+    "Cohérence",
+    "Isolation",
+    "Durabilité"
+  ], a: 3 },
+  { q: "Un Dirty Read se produit quand…", o: [
+    "T1 lit une donnée modifiée par T2 mais non encore committée",
+    "T1 et T2 écrivent au même endroit",
+    "T1 fait un SELECT lent",
+    "Le disque est corrompu"
+  ], a: 0 },
+  { q: "Dans un Lost Update…", o: [
+    "Une transaction n'arrive pas à lire",
+    "Deux transactions écrasent successivement leurs écritures, une est perdue",
+    "Un trigger échoue",
+    "Le COMMIT est ignoré"
+  ], a: 1 },
+  { q: "Deux opérations sont en conflit si…", o: [
+    "Elles sont dans la même transaction",
+    "Elles appartiennent à deux transactions différentes, accèdent au même élément, et au moins une est une écriture",
+    "Elles sont sur des tables différentes",
+    "Elles utilisent JOIN"
+  ], a: 1 },
+  { q: "Le protocole Strict 2PL relâche les verrous…", o: [
+    "Dès que possible après chaque opération",
+    "Uniquement à la fin de la transaction (COMMIT ou ROLLBACK)",
+    "Après un timeout",
+    "À la demande de l'utilisateur"
+  ], a: 1 },
+  { q: "Un deadlock peut être résolu par…", o: [
+    "Réinitialiser la base",
+    "Détection de cycle dans le graphe d'attente, puis tuer une transaction victime",
+    "Augmenter la RAM",
+    "Supprimer les index"
+  ], a: 1 },
+  { q: "À quoi sert DELIMITER // en MySQL ?", o: [
+    "Définir un séparateur de colonnes",
+    "Permettre des ; à l'intérieur du corps d'une procédure sans qu'ils soient exécutés immédiatement",
+    "Forcer un encodage UTF-8",
+    "Commenter une instruction"
+  ], a: 1 },
+  { q: "Une fonction stockée doit obligatoirement…", o: [
+    "Modifier une table",
+    "Retourner une valeur via RETURN",
+    "Avoir un paramètre OUT",
+    "Être appelée par CALL"
+  ], a: 1 },
+  { q: "Dans un trigger AFTER UPDATE, on accède aux valeurs avant/après via…", o: [
+    "@old et @new",
+    "PREV et CURR",
+    "OLD.col et NEW.col",
+    "$1 et $2"
+  ], a: 2 },
+  { q: "Un trigger BEFORE INSERT peut modifier la valeur insérée en…", o: [
+    "Faisant SET NEW.col = ...",
+    "Faisant UPDATE sur la table",
+    "Renvoyant une exception",
+    "Faisant un COMMIT"
+  ], a: 0 },
+  { q: "@var, @@var et DECLARE var : ces trois types correspondent à…", o: [
+    "Variable de session utilisateur, variable système, variable locale au bloc BEGIN/END",
+    "Variable globale, variable de session, variable temporaire",
+    "Variable d'entrée, de sortie, d'entrée-sortie",
+    "Variable persistante, variable volatile, variable nullable"
+  ], a: 0 },
+];
+
+function renderQuiz(questions = QUIZ_QUESTIONS) {
+  state.quizQuestions = questions;
+  state.quizAnswers = {};
+  document.getElementById('quizScore').textContent = 0;
+  document.getElementById('quizTotal').textContent = questions.length;
+  const container = document.getElementById('quizContainer');
+  container.innerHTML = '';
+  questions.forEach((item, idx) => {
+    const card = document.createElement('div');
+    card.className = 'quiz-card';
+    let optsHtml = '';
+    item.o.forEach((opt, i) => {
+      optsHtml += `<div class="quiz-opt" data-q="${idx}" data-i="${i}">${escapeHtml(opt)}</div>`;
+    });
+    card.innerHTML = `
+      <div class="quiz-q"><span style="color:var(--text-muted); font-family:var(--mono); margin-right:8px;">Q${idx+1}.</span>${escapeHtml(item.q)}</div>
+      ${optsHtml}
+      <div class="quiz-feedback" data-feedback="${idx}"></div>
+    `;
+    container.appendChild(card);
+  });
+
+  container.querySelectorAll('.quiz-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      const q = parseInt(opt.dataset.q);
+      const i = parseInt(opt.dataset.i);
+      if (state.quizAnswers[q] !== undefined) return;
+      state.quizAnswers[q] = i;
+      const question = state.quizQuestions[q];
+      const card = opt.closest('.quiz-card');
+      card.querySelectorAll('.quiz-opt').forEach((o, oi) => {
+        if (oi === question.a) o.classList.add('correct');
+        else if (oi === i) o.classList.add('wrong');
+      });
+      const fb = card.querySelector('.quiz-feedback');
+      if (i === question.a) {
+        fb.textContent = '✓ Correct';
+        fb.style.color = 'var(--green)';
+      } else {
+        fb.textContent = `✗ La bonne réponse était : "${question.o[question.a]}"`;
+        fb.style.color = 'var(--red)';
+      }
+      fb.classList.add('show');
+      const score = Object.entries(state.quizAnswers).filter(([k,v]) => v === state.quizQuestions[k].a).length;
+      document.getElementById('quizScore').textContent = score;
+    });
+  });
+}
+
+async function generateQuizMistral() {
+  if (!state.apiKey) {
+    alert("Aucune clé API. Va dans Paramètres pour la coller.");
+    return;
+  }
+  const btn = document.getElementById('generateQuizBtn');
+  const orig = btn.textContent;
+  btn.textContent = '⏳ Génération…';
+  btn.disabled = true;
+  try {
+    const answer = await callMistral([
+      {
+        role: 'system',
+        content: "Tu génères un quiz QCM en JSON STRICT (pas de markdown, pas de ```). Format attendu : un tableau de 10 objets {\"q\": \"question\", \"o\": [\"opt1\",\"opt2\",\"opt3\",\"opt4\"], \"a\": index_correct}. Réponds UNIQUEMENT avec le JSON, rien d'autre."
+      },
+      {
+        role: 'user',
+        content: "Génère 10 questions QCM de niveau M1 sur les Bases de Données Avancées, couvrant la normalisation (1FN, 2FN, 3FN, BCNF, dépendances fonctionnelles), les vues, les indexes, les droits (GRANT/REVOKE), les transactions et ACID, les anomalies de concurrence, les verrous, les procédures stockées MySQL, les fonctions, les triggers. Chaque question a 4 options et une seule bonne réponse."
+      }
+    ], { temperature: 0.7 });
+    let parsed;
+    const clean = answer.trim().replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/```$/,'').trim();
+    parsed = JSON.parse(clean);
+    if (!Array.isArray(parsed)) throw new Error("Format invalide");
+    renderQuiz(parsed);
+  } catch (e) {
+    alert("Erreur lors de la génération : " + e.message);
+  } finally {
+    btn.textContent = orig;
+    btn.disabled = false;
+  }
+}
+
+//=========================================================================
+//  MARKDOWN ULTRA LÉGER
+//=========================================================================
+function renderMarkdownLite(text) {
+  let html = escapeHtml(text);
+  // blocs de code
+  html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) =>
+    `<pre>${code.trim()}</pre>`);
+  // code inline
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // titres
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h2>$1</h2>');
+  // gras / italique
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+  // listes
+  html = html.replace(/^[-*] (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*?<\/li>\n?)+/gs, m => `<ul>${m}</ul>`);
+  // details
+  html = html.replace(/&lt;details&gt;([\s\S]*?)&lt;\/details&gt;/g,
+    '<details style="margin:10px 0; padding:10px; background:var(--surface-1); border-radius:6px;"><summary style="cursor:pointer; color:var(--accent);">Voir la solution</summary>$1</details>');
+  html = html.replace(/&lt;summary&gt;([\s\S]*?)&lt;\/summary&gt;/g, '');
+  // paragraphes
+  html = html.split(/\n\n+/).map(p => {
+    if (p.match(/^<(h\d|ul|pre|details)/)) return p;
+    return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+  }).join('\n');
+  return html;
+}
+
+//=========================================================================
+//  NAVIGATION
+//=========================================================================
+function setupNavigation() {
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const target = item.dataset.target;
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      item.classList.add('active');
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      const sec = document.getElementById('section-' + target);
+      if (sec) sec.classList.add('active');
+      window.scrollTo(0, 0);
+    });
+  });
+
+  document.querySelectorAll('.subnav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const target = item.dataset.sub;
+      const parent = item.closest('.section');
+      parent.querySelectorAll('.subnav-item').forEach(n => n.classList.remove('active'));
+      item.classList.add('active');
+      parent.querySelectorAll('.subsection').forEach(s => s.classList.remove('active'));
+      const sub = parent.querySelector('#sub-' + target);
+      if (sub) sub.classList.add('active');
+    });
+  });
+
+  // home cards
+  document.querySelectorAll('[data-goto]').forEach(card => {
+    card.addEventListener('click', () => {
+      const t = card.dataset.goto;
+      const nav = document.querySelector(`.nav-item[data-target="${t}"]`);
+      if (nav) nav.click();
+    });
+  });
+}
+
+//=========================================================================
+//  IDE EVENT WIRING
+//=========================================================================
+function setupIdes() {
+  document.querySelectorAll('.ide').forEach(ide => {
+    const runBtn = ide.querySelector('[data-action="run"]');
+    const resetBtn = ide.querySelector('[data-action="reset"]');
+    const mistralBtn = ide.querySelector('[data-action="ask-mistral"]');
+    const editor = ide.querySelector('.ide-editor');
+
+    if (runBtn) runBtn.addEventListener('click', () => runIde(ide));
+    if (resetBtn) resetBtn.addEventListener('click', () => {
+      resetDb();
+      ide.querySelector('.ide-output').innerHTML = '<div class="ok-msg">✓ Base réinitialisée.</div>';
+    });
+    if (mistralBtn) mistralBtn.addEventListener('click', () => askMistralOnIde(ide));
+    if (editor) {
+      editor.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          runIde(ide);
+        }
+      });
+    }
+  });
+
+  // generate-exo buttons
+  document.querySelectorAll('[data-action="generate-exo"]').forEach(btn => {
+    btn.addEventListener('click', () => generateExo(btn));
+  });
+}
+
+//=========================================================================
+//  SETTINGS
+//=========================================================================
+function setupSettings() {
+  const apiInput = document.getElementById('apiKeyInput');
+  const modelSel = document.getElementById('modelSelect');
+  const saveBtn = document.getElementById('saveApiBtn');
+  const testBtn = document.getElementById('testApiBtn');
+  const clearBtn = document.getElementById('clearApiBtn');
+  const result = document.getElementById('apiTestResult');
+  const status = document.getElementById('apiStatus');
+  const statusTxt = document.getElementById('apiStatusText');
+
+  function updateStatus() {
+    if (state.apiKey) {
+      status.classList.add('connected');
+      statusTxt.textContent = 'Connecté';
+    } else {
+      status.classList.remove('connected');
+      statusTxt.textContent = 'Non connecté';
+    }
+  }
+
+  saveBtn.addEventListener('click', () => {
+    state.apiKey = apiInput.value.trim() || null;
+    state.model = modelSel.value;
+    updateStatus();
+    result.innerHTML = state.apiKey
+      ? '<p style="color:var(--green);">✓ Clé enregistrée en mémoire pour cette session.</p>'
+      : '<p style="color:var(--text-muted);">Clé vide — déconnecté.</p>';
+  });
+
+  testBtn.addEventListener('click', async () => {
+    state.apiKey = apiInput.value.trim() || state.apiKey;
+    state.model = modelSel.value;
+    if (!state.apiKey) {
+      result.innerHTML = '<p style="color:var(--red);">Colle d\'abord une clé.</p>';
+      return;
+    }
+    result.innerHTML = '<p style="color:var(--text-muted);">Test en cours…</p>';
+    try {
+      const answer = await callMistral([
+        { role: 'user', content: "Dis simplement 'OK' pour confirmer que tu m'entends." }
+      ], { temperature: 0 });
+      result.innerHTML = `<p style="color:var(--green);">✓ Connexion réussie. Réponse : ${escapeHtml(answer.slice(0,80))}</p>`;
+      updateStatus();
+    } catch (e) {
+      result.innerHTML = `<p style="color:var(--red);">✗ Échec : ${escapeHtml(e.message)}</p>`;
+    }
+  });
+
+  clearBtn.addEventListener('click', () => {
+    apiInput.value = '';
+    state.apiKey = null;
+    updateStatus();
+    result.innerHTML = '<p style="color:var(--text-muted);">Clé effacée.</p>';
+  });
+}
+
+//=========================================================================
+//  BOOT
+//=========================================================================
+document.addEventListener('DOMContentLoaded', async () => {
+  setupNavigation();
+  setupIdes();
+  setupSettings();
+  renderQuiz();
+
+  // schéma libre
+  const schemaBtn = document.getElementById('showSchemaBtn');
+  const schemaPanel = document.getElementById('schemaPanel');
+  if (schemaBtn) {
+    schemaBtn.addEventListener('click', () => {
+      schemaPanel.style.display = schemaPanel.style.display === 'none' ? 'block' : 'none';
+    });
+  }
+
+  const resetQuiz = document.getElementById('resetQuizBtn');
+  if (resetQuiz) resetQuiz.addEventListener('click', () => renderQuiz());
+  const genQuiz = document.getElementById('generateQuizBtn');
+  if (genQuiz) genQuiz.addEventListener('click', generateQuizMistral);
+
+  // 1re entrée nav active
+  const firstNav = document.querySelector('.nav-item[data-target="home"]');
+  if (firstNav) firstNav.classList.add('active');
+
+  // init SQL.js
+  try {
+    await initDb();
+    console.log('SQLite ready');
+  } catch (e) {
+    console.error('Failed to init SQLite:', e);
+  }
+});
+</script>
+
+</body>
+</html>
