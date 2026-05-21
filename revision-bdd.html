@@ -681,6 +681,154 @@
     text-align: center;
     color: var(--text-muted);
   }
+  /* ======= Schema visualization ======= */
+  .schema-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .schema-card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  .schema-card-head {
+    background: var(--surface-2);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .schema-card-name {
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .schema-card-meta {
+    color: var(--text-muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .schema-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    padding: 6px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    align-items: center;
+  }
+  .schema-row:last-child { border-bottom: none; }
+  .schema-col {
+    color: var(--text);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .schema-col-key {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .schema-col-key.pk { background: rgba(224,168,90,0.18); color: var(--accent); }
+  .schema-col-key.fk { background: rgba(120,150,200,0.18); color: #98b3d8; }
+  .schema-type {
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+  .schema-warn {
+    grid-column: 1 / -1;
+    background: rgba(201,122,106,0.08);
+    color: var(--red);
+    padding: 8px 14px;
+    font-size: 11px;
+    border-top: 1px solid rgba(201,122,106,0.2);
+  }
+
+  /* ======= Exercise generator panel ======= */
+  .exo-panel {
+    background: linear-gradient(135deg, rgba(224,168,90,0.08), rgba(224,168,90,0.02));
+    border: 1px solid rgba(224,168,90,0.25);
+    border-radius: 10px;
+    padding: 20px 22px;
+    margin: 24px 0;
+  }
+  .exo-panel h3 {
+    margin-top: 0;
+    color: var(--accent);
+    font-family: var(--display);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 22px;
+  }
+  .exo-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 12px;
+    align-items: end;
+    margin: 16px 0;
+  }
+  @media (max-width: 720px) {
+    .exo-controls { grid-template-columns: 1fr; }
+  }
+  .exo-controls label {
+    display: block;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+  }
+  .exo-controls select {
+    width: 100%;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-family: var(--sans);
+    font-size: 14px;
+  }
+  .exo-result {
+    margin-top: 16px;
+    padding: 16px 18px;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: none;
+  }
+  .exo-result.show { display: block; }
+  .exo-result h4 {
+    margin: 0 0 10px 0;
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* ======= Quick how-to card ======= */
+  .howto {
+    background: var(--surface-1);
+    border-left: 3px solid var(--accent);
+    padding: 14px 18px;
+    border-radius: 0 6px 6px 0;
+    margin: 16px 0 24px 0;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .howto strong { color: var(--text); }
+  .howto ol { margin: 8px 0 0 0; padding-left: 20px; }
+  .howto ol li { margin: 4px 0; }
+
   .acid-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -1802,40 +1950,156 @@ SELECT * FROM audit_employes;
     <section class="section" id="section-ide">
       <div class="chapter-tag">Pratique</div>
       <h1 class="chapter-title">IDE SQL <em>libre</em>.</h1>
-      <p class="chapter-lead">Une base SQLite préchargée avec un schéma d'entraînement. Écris tes requêtes, teste tes idées, sans contrainte.</p>
+      <p class="chapter-lead">Un bac à sable pour pratiquer. Choisis un thème, génère un exercice avec Mistral, écris ta requête, exécute. Aussi simple que ça.</p>
 
-      <div class="btn-row">
-        <button class="btn ghost" id="showSchemaBtn">⚏ Afficher le schéma</button>
-        <button class="btn ghost" data-action="reset" data-target-ide="ide-free">↺ Reset complet de la base</button>
+      <div class="howto">
+        <strong>Comment ça marche</strong>
+        <ol>
+          <li>Regarde le <strong>schéma des tables</strong> ci-dessous pour savoir avec quoi tu travailles.</li>
+          <li>Choisis un <strong>thème</strong> et une <strong>difficulté</strong>, puis clique sur <em>Génère-moi un exo</em>. Mistral te crée un énoncé adapté.</li>
+          <li>Écris ta requête dans l'éditeur, <strong>Ctrl+Enter</strong> pour exécuter.</li>
+          <li>Bloqué&nbsp;? Clique sur <em>✦ Mistral</em> dans l'éditeur — il relit ton code et t'aide.</li>
+        </ol>
       </div>
 
-      <div id="schemaPanel" style="display:none; margin: 20px 0;">
-        <pre>-- Tables disponibles
-departements(id, nom, ville)
-employes(id, nom, prenom, salaire, dept_id → departements.id, date_embauche)
-produits(id, libelle, prix, stock, categorie)
-clients(id, nom, email, ville)
-commandes(id, client_id → clients.id, produit_id → produits.id, quantite, date_commande)
-ventes_brutes(NomClient, VilleClient, NomProduit, PrixProduit, Quantite, DateVente)
-  -- Table volontairement mal conçue pour les exercices de normalisation</pre>
+      <h2 style="margin-top: 32px;">Schéma de la base</h2>
+      <p style="color: var(--text-muted); font-size: 14px;">Six tables, chargées au démarrage. Les colonnes <span style="color: var(--accent);">PK</span> sont les clés primaires, <span style="color: #98b3d8;">FK</span> les clés étrangères.</p>
+
+      <div class="schema-grid">
+
+        <div class="schema-card">
+          <div class="schema-card-head">
+            <span class="schema-card-name">departements</span>
+            <span class="schema-card-meta">4 lignes</span>
+          </div>
+          <div class="schema-row"><div class="schema-col"><span class="schema-col-key pk">PK</span>id</div><div class="schema-type">INTEGER</div></div>
+          <div class="schema-row"><div class="schema-col">nom</div><div class="schema-type">TEXT</div></div>
+          <div class="schema-row"><div class="schema-col">ville</div><div class="schema-type">TEXT</div></div>
+        </div>
+
+        <div class="schema-card">
+          <div class="schema-card-head">
+            <span class="schema-card-name">employes</span>
+            <span class="schema-card-meta">8 lignes</span>
+          </div>
+          <div class="schema-row"><div class="schema-col"><span class="schema-col-key pk">PK</span>id</div><div class="schema-type">INTEGER</div></div>
+          <div class="schema-row"><div class="schema-col">nom</div><div class="schema-type">TEXT</div></div>
+          <div class="schema-row"><div class="schema-col">prenom</div><div class="schema-type">TEXT</div></div>
+          <div class="schema-row"><div class="schema-col">salaire</div><div class="schema-type">REAL</div></div>
+          <div class="schema-row"><div class="schema-col"><span class="schema-col-key fk">FK</span>dept_id</div><div class="schema-type">→ departements</div></div>
+          <div class="schema-row"><div class="schema-col">date_embauche</div><div class="schema-type">TEXT</div></div>
+        </div>
+
+        <div class="schema-card">
+          <div class="schema-card-head">
+            <span class="schema-card-name">produits</span>
+            <span class="schema-card-meta">6 lignes</span>
+          </div>
+          <div class="schema-row"><div class="schema-col"><span class="schema-col-key pk">PK</span>id</div><div class="schema-type">INTEGER</div></div>
+          <div class="schema-row"><div class="schema-col">libelle</div><div class="schema-type">TEXT</div></div>
+          <div class="schema-row"><div class="schema-col">prix</div><div class="schema-type">REAL</div></div>
+          <div class="schema-row"><div class="schema-col">stock</div><div class="schema-type">INTEGER</div></div>
+          <div class="schema-row"><div class="schema-col">categorie</div><div class="schema-type">TEXT</div></div>
+        </div>
+
+        <div class="schema-card">
+          <div class="schema-card-head">
+            <span class="schema-card-name">clients</span>
+            <span class="schema-card-meta">4 lignes</span>
+          </div>
+          <div class="schema-row"><div class="schema-col"><span class="schema-col-key pk">PK</span>id</div><div class="schema-type">INTEGER</div></div>
+          <div class="schema-row"><div class="schema-col">nom</div><div class="schema-type">TEXT</div></div>
+          <div class="schema-row"><div class="schema-col">email</div><div class="schema-type">TEXT</div></div>
+          <div class="schema-row"><div class="schema-col">ville</div><div class="schema-type">TEXT</div></div>
+        </div>
+
+        <div class="schema-card">
+          <div class="schema-card-head">
+            <span class="schema-card-name">commandes</span>
+            <span class="schema-card-meta">7 lignes</span>
+          </div>
+          <div class="schema-row"><div class="schema-col"><span class="schema-col-key pk">PK</span>id</div><div class="schema-type">INTEGER</div></div>
+          <div class="schema-row"><div class="schema-col"><span class="schema-col-key fk">FK</span>client_id</div><div class="schema-type">→ clients</div></div>
+          <div class="schema-row"><div class="schema-col"><span class="schema-col-key fk">FK</span>produit_id</div><div class="schema-type">→ produits</div></div>
+          <div class="schema-row"><div class="schema-col">quantite</div><div class="schema-type">INTEGER</div></div>
+          <div class="schema-row"><div class="schema-col">date_commande</div><div class="schema-type">TEXT</div></div>
+        </div>
+
+        <div class="schema-card">
+          <div class="schema-card-head">
+            <span class="schema-card-name">ventes_brutes</span>
+            <span class="schema-card-meta">7 lignes</span>
+          </div>
+          <div class="schema-row"><div class="schema-col">NomClient</div><div class="schema-type">TEXT</div></div>
+          <div class="schema-row"><div class="schema-col">VilleClient</div><div class="schema-type">TEXT</div></div>
+          <div class="schema-row"><div class="schema-col">NomProduit</div><div class="schema-type">TEXT</div></div>
+          <div class="schema-row"><div class="schema-col">PrixProduit</div><div class="schema-type">REAL</div></div>
+          <div class="schema-row"><div class="schema-col">Quantite</div><div class="schema-type">INTEGER</div></div>
+          <div class="schema-row"><div class="schema-col">DateVente</div><div class="schema-type">TEXT</div></div>
+          <div class="schema-warn">⚠ Table volontairement mal conçue — sert aux exos de normalisation.</div>
+        </div>
+
+      </div>
+
+      <!-- Exercise generator -->
+      <div class="exo-panel">
+        <h3>Génère-moi un exercice</h3>
+        <p style="color: var(--text-muted); margin: 0; font-size: 14px;">Mistral te propose un petit exo ciblé sur le thème de ton choix. L'énoncé apparaît juste en dessous, et tu peux l'insérer directement dans l'éditeur avec un squelette de départ.</p>
+
+        <div class="exo-controls">
+          <div>
+            <label for="exoTheme">Thème</label>
+            <select id="exoTheme">
+              <option value="bases">Bases — SELECT, WHERE, ORDER BY</option>
+              <option value="jointures">Jointures (JOIN, GROUP BY)</option>
+              <option value="normalisation">CM1 — Normalisation</option>
+              <option value="vues">CM2 — Vues</option>
+              <option value="indexes">CM2 — Indexes</option>
+              <option value="transactions">CM3 — Transactions</option>
+              <option value="triggers">CM4 — Triggers</option>
+            </select>
+          </div>
+          <div>
+            <label for="exoDiff">Difficulté</label>
+            <select id="exoDiff">
+              <option value="facile" selected>Facile</option>
+              <option value="moyen">Moyen</option>
+              <option value="difficile">Difficile</option>
+            </select>
+          </div>
+          <div>
+            <label>&nbsp;</label>
+            <button class="btn primary" id="genFreeExoBtn">✦ Génère-moi un exo</button>
+          </div>
+        </div>
+
+        <div id="exoResult" class="exo-result">
+          <h4>Énoncé</h4>
+          <div id="exoResultContent"></div>
+          <div class="btn-row" id="exoActions" style="margin-top: 12px; display: none;">
+            <button class="btn ghost small" id="loadSkeletonBtn">⤓ Charger le squelette dans l'éditeur</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row" style="margin-bottom: 16px;">
+        <button class="btn ghost" data-action="reset" data-target-ide="ide-free">↺ Reset complet de la base</button>
       </div>
 
       <div class="ide" data-ide="ide-free">
         <div class="ide-header">
-          <div class="ide-title">SQL — Espace libre</div>
+          <div class="ide-title">SQL — Éditeur</div>
           <div class="ide-actions">
-            <button class="btn small ghost" data-action="ask-mistral">✦ Mistral</button>
-            <button class="btn small primary" data-action="run">▶ Exécuter</button>
+            <button class="btn small ghost" data-action="ask-mistral">✦ Mistral, corrige-moi</button>
+            <button class="btn small primary" data-action="run">▶ Exécuter (Ctrl+Enter)</button>
           </div>
         </div>
-        <textarea class="ide-editor" spellcheck="false">-- Bienvenue dans ton bac à sable
--- Quelques idées pour démarrer :
+        <textarea class="ide-editor" spellcheck="false">-- Bienvenue dans ton bac à sable.
+-- Essaie une requête simple pour t'échauffer :
 
-SELECT d.nom AS departement, COUNT(*) AS nb_emp, AVG(e.salaire) AS salaire_moyen
-FROM departements d
-LEFT JOIN employes e ON e.dept_id = d.id
-GROUP BY d.id
-ORDER BY salaire_moyen DESC;
+SELECT nom, prenom, salaire
+FROM employes
+ORDER BY salaire DESC;
 </textarea>
         <div class="ide-output"></div>
       </div>
@@ -2558,12 +2822,109 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupSettings();
   renderQuiz();
 
-  // schéma libre
-  const schemaBtn = document.getElementById('showSchemaBtn');
-  const schemaPanel = document.getElementById('schemaPanel');
-  if (schemaBtn) {
-    schemaBtn.addEventListener('click', () => {
-      schemaPanel.style.display = schemaPanel.style.display === 'none' ? 'block' : 'none';
+  // ======== Free IDE exercise generator ========
+  const genFreeExoBtn = document.getElementById('genFreeExoBtn');
+  const exoResult = document.getElementById('exoResult');
+  const exoResultContent = document.getElementById('exoResultContent');
+  const exoActions = document.getElementById('exoActions');
+  let lastSkeleton = null;
+
+  const themeContext = {
+    bases: "requêtes basiques : SELECT, WHERE, ORDER BY, LIMIT, opérateurs LIKE / BETWEEN / IN. Pas de JOIN.",
+    jointures: "jointures INNER/LEFT JOIN entre 2 ou 3 tables, GROUP BY, HAVING, COUNT/SUM/AVG.",
+    normalisation: "analyse de la table ventes_brutes (mal conçue), décomposition en plusieurs tables, ou identification des formes normales via une requête CREATE TABLE proposée. Tu peux demander à l'élève de proposer une décomposition en 3FN sous forme d'instructions CREATE TABLE.",
+    vues: "création d'une vue (CREATE VIEW) qui simplifie une requête ou masque des colonnes sensibles. SQLite supporte CREATE VIEW.",
+    indexes: "création d'un index (CREATE INDEX) sur une colonne fréquemment filtrée, et observation du plan d'exécution avec EXPLAIN QUERY PLAN.",
+    transactions: "utilisation de BEGIN TRANSACTION / COMMIT / ROLLBACK pour faire un transfert ou une mise à jour atomique. Bien insister sur le ROLLBACK en cas de problème.",
+    triggers: "création d'un trigger (syntaxe SQLite : CREATE TRIGGER ... BEFORE/AFTER ... FOR EACH ROW BEGIN ... END;) pour audit, validation ou cascade métier.",
+  };
+
+  if (genFreeExoBtn) {
+    genFreeExoBtn.addEventListener('click', async () => {
+      if (!state.apiKey) {
+        exoResult.classList.add('show');
+        exoResultContent.innerHTML = '<p style="color:var(--red);">Aucune clé API configurée. Va dans <strong>Paramètres</strong> pour la coller.</p>';
+        exoActions.style.display = 'none';
+        return;
+      }
+      const theme = document.getElementById('exoTheme').value;
+      const diff = document.getElementById('exoDiff').value;
+      const ctx = themeContext[theme] || '';
+
+      exoResult.classList.add('show');
+      exoResultContent.innerHTML = '<p style="color:var(--text-muted);">Mistral réfléchit à un exercice ' + diff + '…</p>';
+      exoActions.style.display = 'none';
+      genFreeExoBtn.disabled = true;
+      genFreeExoBtn.textContent = '⏳ Génération…';
+
+      const schemaHint = "Base SQLite disponible avec ces tables : departements(id PK, nom, ville), employes(id PK, nom, prenom, salaire, dept_id FK, date_embauche), produits(id PK, libelle, prix, stock, categorie), clients(id PK, nom, email, ville), commandes(id PK, client_id FK, produit_id FK, quantite, date_commande), ventes_brutes(NomClient, VilleClient, NomProduit, PrixProduit, Quantite, DateVente — table mal conçue).";
+
+      const diffDesc = {
+        facile: "TRÈS basique, 1 seule notion, 2-3 lignes de SQL max",
+        moyen: "intermédiaire, combine 2 notions, 4-6 lignes",
+        difficile: "plus poussé mais réaliste, 6-10 lignes"
+      }[diff];
+
+      try {
+        const answer = await callMistral([
+          {
+            role: 'system',
+            content: `Tu es un assistant pédagogique pour un cours de Bases de Données Avancées (niveau M1, EFREI). Tu génères UN SEUL petit exercice SQL ciblé. ${schemaHint}
+
+IMPORTANT : tu réponds en JSON STRICT (pas de markdown, pas de \`\`\`), avec exactement ces 4 clés :
+{
+ "enonce": "...",
+ "indice": "...",
+ "squelette": "-- SQL de départ avec commentaires pour guider, par ex. -- TODO: complète le SELECT...",
+ "solution": "..."
+}
+- enonce : 2-4 phrases claires, en français.
+- indice : 1 phrase d'aide, en français.
+- squelette : un bout de SQL valide en SQLite avec des commentaires "-- TODO" pour guider l'élève.
+- solution : la solution SQL complète et fonctionnelle (sans commentaires inutiles).
+
+Pas de DELIMITER, pas de CREATE PROCEDURE (non supportés en SQLite).`
+          },
+          {
+            role: 'user',
+            content: `Génère un exercice de difficulté ${diffDesc}, sur le thème : ${ctx}`
+          }
+        ], { temperature: 0.8 });
+
+        let parsed;
+        const clean = answer.trim().replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/```$/,'').trim();
+        parsed = JSON.parse(clean);
+
+        lastSkeleton = parsed.squelette || null;
+
+        let html = `<p>${escapeHtml(parsed.enonce)}</p>`;
+        if (parsed.indice) {
+          html += `<p style="color:var(--text-muted); font-size:13px;"><strong>Indice :</strong> ${escapeHtml(parsed.indice)}</p>`;
+        }
+        if (parsed.solution) {
+          html += `<details style="margin-top:12px; padding:10px 14px; background:var(--surface-2); border-radius:6px;"><summary style="cursor:pointer; color:var(--accent); font-size:13px;">Voir la solution</summary><pre style="margin-top:10px;">${escapeHtml(parsed.solution)}</pre></details>`;
+        }
+        exoResultContent.innerHTML = html;
+        exoActions.style.display = lastSkeleton ? 'flex' : 'none';
+      } catch (e) {
+        exoResultContent.innerHTML = `<p style="color:var(--red);">Erreur : ${escapeHtml(e.message)}</p><p style="color:var(--text-muted); font-size:12px;">Réessaie, parfois Mistral renvoie du texte mal formaté.</p>`;
+      } finally {
+        genFreeExoBtn.disabled = false;
+        genFreeExoBtn.textContent = '✦ Génère-moi un exo';
+      }
+    });
+  }
+
+  const loadSkeletonBtn = document.getElementById('loadSkeletonBtn');
+  if (loadSkeletonBtn) {
+    loadSkeletonBtn.addEventListener('click', () => {
+      if (!lastSkeleton) return;
+      const editor = document.querySelector('.ide[data-ide="ide-free"] .ide-editor');
+      if (editor) {
+        editor.value = lastSkeleton;
+        editor.focus();
+        editor.scrollIntoView({behavior:'smooth', block:'center'});
+      }
     });
   }
 
